@@ -472,7 +472,7 @@ body.touch-mode .help { display: none; }
   position: absolute; left: 50%; top: 50%;
   width: 52px; height: 52px; border-radius: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .buttons {
@@ -492,18 +492,19 @@ body.touch-mode .help { display: none; }
   border-radius: 50%;
   font: 700 15px var(--font);
   color: var(--ink);
-  background: rgba(12, 22, 16, 0.55);
-  border: 2px solid rgba(255, 255, 255, 0.55);
+  background: rgba(12, 22, 16, 0.2);
+  text-shadow: 0 1px 3px #000;
+  border: 2px solid rgba(255, 255, 255, 0.4);
   touch-action: none;
 }
-.btn.pressed { background: rgba(255, 225, 77, 0.55); }
-.btn-shoot { width: 86px; height: 86px; right: 0; bottom: 20px; background: rgba(47, 111, 237, 0.7); font-size: 18px; }
+.btn.pressed { background: rgba(255, 225, 77, 0.5); }
+.btn-shoot { width: 86px; height: 86px; right: 0; bottom: 20px; background: rgba(47, 111, 237, 0.3); font-size: 18px; }
 .btn-pass { width: 66px; height: 66px; right: 100px; bottom: 0; }
 .btn-through { width: 60px; height: 60px; right: 96px; bottom: 82px; }
 .btn-lob { width: 58px; height: 58px; right: 20px; bottom: 120px; }
 .btn-sprint { width: 64px; height: 64px; right: 172px; bottom: 30px; font-size: 13px; }
 .btn-switch { width: 54px; height: 54px; right: 178px; bottom: 112px; font-size: 13px; }
-.touch.defend .btn-shoot { background: rgba(232, 85, 59, 0.75); }
+.touch.defend .btn-shoot { background: rgba(232, 85, 59, 0.32); }
 
 @media (orientation: portrait) {
   body.touch-mode .rotate-hint {
@@ -551,11 +552,24 @@ body.touch-mode .help { display: none; }
 .crash p { margin: 0; font-size: 14px; line-height: 1.6; max-width: 40ch; }
 .crash .ed-note { white-space: pre-wrap; word-break: break-all; max-height: 30vh; overflow: auto; }
 
+/*
+ * Everything laid over the pitch during play is see-through, so the players behind it stay
+ * visible: the scoreboard, the buttons along the top, the controls panel, notices and the
+ * touch controls. Text gets a shadow to stay readable. Screens that stop play (pause, result,
+ * substitutions) keep their solid cards.
+ */
+.hud, .tools { --panel: rgba(12, 22, 16, 0.34); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9); }
+.hud .result, .pause, .subs { --panel: rgba(12, 22, 16, 0.86); text-shadow: none; }
+.help { border-color: rgba(255, 255, 255, 0.1); }
+.help kbd { background: rgba(255, 255, 255, 0.06); text-shadow: none; }
+.tools button { border-color: rgba(255, 255, 255, 0.14); }
+.tools button:hover { background: rgba(12, 22, 16, 0.7); }
+
 /* ---------- commentary caption ---------- */
 .caption {
   position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 58px);
   transform: translate(-50%, 6px); max-width: min(680px, calc(100vw - 32px));
-  background: rgba(6, 12, 9, 0.78); border: 1px solid var(--line); border-radius: 6px;
+  background: rgba(6, 12, 9, 0.5); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; text-shadow: 0 1px 3px #000;
   padding: 7px 14px; font-size: clamp(14px, 2.1vw, 17px); font-weight: 600; text-align: center; line-height: 1.4;
   opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 6;
 }
