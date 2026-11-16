@@ -6,8 +6,8 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 // so it can be hosted anywhere (static host, artifact, itch.io).
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
 // Shown in the game so testers can say which build they played.
-const now = new Date();
-const build = `v${pkg.version} · ${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+// The date in Korea, wherever the build runs (the hosting service builds in UTC).
+const build = `v${pkg.version} · ${new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date())}`;
 
 export default defineConfig({
   plugins: [viteSingleFile()],
