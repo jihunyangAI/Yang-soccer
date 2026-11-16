@@ -1,0 +1,337 @@
+<title>PITCHLINE 기획서</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: single reading column, chalk-line section rules, pitch diagrams as the one visual moment */
+:root{
+  --bg:#F5F7F3; --surface:#FFFFFF; --fg:#16211B; --muted:#5A6A61; --line:#D7DDD6;
+  --accent:#1D7448; --accent-soft:#E2F0E7; --away:#B8661A; --turf:#E6EFE6; --chalk:#9DB5A4;
+  --font-display:"Black Han Sans","Noto Sans KR",system-ui,sans-serif;
+  --font-body:"Noto Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1512; --surface:#161E1A; --fg:#E5ECE7; --muted:#95A69C; --line:#283430;
+  --accent:#43C283; --accent-soft:#183A28; --away:#E59A50; --turf:#15241C; --chalk:#3F5A49; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1512; --surface:#161E1A; --fg:#E5ECE7; --muted:#95A69C; --line:#283430;
+  --accent:#43C283; --accent-soft:#183A28; --away:#E59A50; --turf:#15241C; --chalk:#3F5A49; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.75;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:860px;margin:0 auto;padding-block:48px 96px;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{text-wrap:balance;margin:0;font-weight:400}
+h1{font-family:var(--font-display);font-size:clamp(40px,8vw,64px);line-height:1.05;letter-spacing:.01em}
+h2{font-family:var(--font-display);font-size:28px;line-height:1.2}
+h3{font-family:var(--font-body);font-weight:700;font-size:18px}
+p{margin:0;max-width:68ch}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)}
+section{display:flex;flex-direction:column;gap:20px;border-top:2px solid var(--line);padding-top:28px}
+header{display:flex;flex-direction:column;gap:16px}
+.lede{font-size:18px;color:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.facts div{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.facts dt{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.facts dd{margin:0;font-weight:700}
+ul,ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:6px;max-width:68ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.two>div{min-width:0;display:flex;flex-direction:column;gap:10px}
+.yes h3{color:var(--accent)} .no h3{color:var(--away)}
+.table{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:15px;min-width:520px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}
+kbd{font-family:var(--font-mono);font-size:13px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 6px;background:var(--bg);white-space:nowrap}
+.pick{display:inline-block;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;background:var(--accent-soft);color:var(--accent);border-radius:3px;padding:1px 6px;margin-left:6px;vertical-align:2px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figure svg{width:100%;height:auto;display:block;max-width:100%}
+figcaption{font-size:13px;color:var(--muted)}
+.milestones{list-style:none;padding:0;gap:0;max-width:none;counter-reset:m}
+.milestones li{display:grid;grid-template-columns:64px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}
+.milestones li:last-child{border-bottom:0}
+.milestones .tag{font-family:var(--font-mono);font-weight:500;color:var(--accent);font-size:15px;padding-top:2px}
+.milestones .body{min-width:0;display:flex;flex-direction:column;gap:6px}
+.done{font-size:14px;color:var(--muted)}
+.done b{color:var(--fg)}
+.callout{background:var(--accent-soft);border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.mono{font-family:var(--font-mono);font-size:14px}
+@media (max-width:640px){.two{grid-template-columns:1fr}.milestones li{grid-template-columns:48px 1fr}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">게임 기획서 · 초안 v0.2 · 2026-11-15</span>
+  <h1>PITCHLINE</h1>
+  <p class="lede">PC와 모바일에서 하는 3D 11대11 축구 게임입니다. 선수를 직접 조작하는 정통 축구 게임의 손맛을 살리고, 실제 리그 라이선스 대신 가상 리그와 클럽 육성으로 승부합니다. (PITCHLINE은 가제입니다.)</p>
+  <dl class="facts">
+    <div><dt>장르</dt><dd>축구 액션 · 스포츠</dd></div>
+    <div><dt>플랫폼</dt><dd>1단계 웹(PC·모바일) → 2단계 Unity PC</dd></div>
+    <div><dt>시점</dt><dd>3D 방송 중계 시점</dd></div>
+    <div><dt>플레이</dt><dd>1인 vs AI → 로컬 2인 → 온라인</dd></div>
+    <div><dt>그래픽</dt><dd>스타일라이즈드 로우폴리</dd></div>
+    <div><dt>경기 시간</dt><dd>전후반 각 3~10분 (설정)</dd></div>
+  </dl>
+</header>
+
+<section>
+  <span class="eyebrow">01 방향성</span>
+  <h2>무엇을 만들고, 무엇을 만들지 않나</h2>
+  <p>EA SPORTS FC는 수백 명이 매년 만드는 게임입니다. 같은 방식으로 경쟁하면 이길 수 없으니, 작은 팀이 잘할 수 있는 부분에 집중합니다.</p>
+  <div class="two">
+    <div class="yes">
+      <h3>만드는 것</h3>
+      <ul>
+        <li>패스 한 번, 슛 한 번의 <b>조작감</b>을 최우선으로 다듬기</li>
+        <li>똑똑하게 움직이는 <b>팀 AI</b>: 빈 공간 침투, 압박, 커버</li>
+        <li>약팀을 맡아 키우는 <b>클럽 육성 모드</b></li>
+        <li>모바일에서도 편한 <b>터치 조작</b></li>
+        <li>팀·선수 이름과 유니폼을 바꾸는 <b>에디터</b></li>
+      </ul>
+    </div>
+    <div class="no">
+      <h3>만들지 않는 것</h3>
+      <ul>
+        <li>실제 구단·선수·리그의 이름, 엠블럼, 얼굴 (라이선스 문제)</li>
+        <li>실사 그래픽과 모션캡처 수준의 애니메이션</li>
+        <li>돈을 쓸수록 강해지는 선수 뽑기(가챠) 구조</li>
+        <li>초기 버전의 온라인 대전 (기반을 다진 뒤 추가)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout">
+    <h3>핵심 재미 세 가지</h3>
+    <ol>
+      <li><b>내가 만든 골</b>: 원투 패스, 스루패스, 감아차기로 직접 만들어 내는 득점 장면</li>
+      <li><b>읽히는 상대</b>: AI가 납득할 만하게 움직여서, 이기면 내가 잘했다고 느껴지는 경기</li>
+      <li><b>키우는 맛</b>: 무명 선수가 시즌을 거치며 에이스로 성장하는 과정</li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <span class="eyebrow">02 경기</span>
+  <h2>경기장과 경기 규칙</h2>
+  <figure>
+    <svg viewBox="-20 -20 1090 720" role="img" aria-label="105×68m 경기장에 홈팀 4-4-2, 원정팀 4-3-3으로 킥오프 대형을 배치한 그림">
+      <rect x="-20" y="-20" width="1090" height="720" rx="12" fill="var(--turf)"/>
+      <g fill="none" stroke="var(--chalk)" stroke-width="3">
+        <rect x="0" y="0" width="1050" height="680"/>
+        <line x1="525" y1="0" x2="525" y2="680"/>
+        <circle cx="525" cy="340" r="91.5"/>
+        <rect x="0" y="138.5" width="165" height="403"/>
+        <rect x="885" y="138.5" width="165" height="403"/>
+        <rect x="0" y="248.5" width="55" height="183"/>
+        <rect x="995" y="248.5" width="55" height="183"/>
+        <rect x="-14" y="303.4" width="14" height="73.2"/>
+        <rect x="1050" y="303.4" width="14" height="73.2"/>
+      </g>
+      <g fill="var(--accent)">
+        <circle cx="50" cy="340" r="14"/>
+        <circle cx="200" cy="110" r="14"/><circle cx="200" cy="260" r="14"/><circle cx="200" cy="420" r="14"/><circle cx="200" cy="570" r="14"/>
+        <circle cx="360" cy="110" r="14"/><circle cx="360" cy="260" r="14"/><circle cx="360" cy="420" r="14"/><circle cx="360" cy="570" r="14"/>
+        <circle cx="490" cy="290" r="14"/><circle cx="505" cy="390" r="14"/>
+      </g>
+      <g fill="var(--away)">
+        <circle cx="1000" cy="340" r="14"/>
+        <circle cx="850" cy="110" r="14"/><circle cx="850" cy="260" r="14"/><circle cx="850" cy="420" r="14"/><circle cx="850" cy="570" r="14"/>
+        <circle cx="700" cy="200" r="14"/><circle cx="700" cy="340" r="14"/><circle cx="700" cy="480" r="14"/>
+        <circle cx="600" cy="140" r="14"/><circle cx="640" cy="340" r="14"/><circle cx="600" cy="540" r="14"/>
+      </g>
+      <circle cx="525" cy="340" r="8" fill="var(--fg)"/>
+    </svg>
+    <figcaption>표준 경기장 105×68m. 킥오프 대형 예시: 홈 4-4-2(초록), 원정 4-3-3(주황). 포메이션은 AI가 위치를 잡는 기준이 됩니다.</figcaption>
+  </figure>
+  <div class="table"><table>
+    <thead><tr><th>규칙</th><th>도입 시점</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr><td>골, 킥오프, 전후반, 타이머</td><td>M1</td><td>경기가 처음부터 끝까지 돌아가는 최소 조건</td></tr>
+      <tr><td>스로인, 골킥, 코너킥</td><td>M2</td><td>공이 라인을 넘으면 자동 재개</td></tr>
+      <tr><td>파울, 프리킥, 페널티킥</td><td>M2</td><td>태클 각도와 타이밍으로 판정</td></tr>
+      <tr><td>오프사이드</td><td>M2</td><td>설정에서 켜고 끌 수 있음</td></tr>
+      <tr><td>카드, 부상, 교체</td><td>M4</td><td>클럽 육성 모드와 함께</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <span class="eyebrow">03 조작</span>
+  <h2>PC와 모바일 조작</h2>
+  <p>같은 동작을 두 플랫폼에 맞게 나눕니다. 슛은 버튼을 누르는 시간으로 파워를 정하고, 패스는 방향 입력에 가장 가까운 동료를 자동으로 찾습니다.</p>
+  <div class="table"><table>
+    <thead><tr><th>동작</th><th>키보드</th><th>게임패드</th><th>모바일</th></tr></thead>
+    <tbody>
+      <tr><td>이동</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>왼쪽 스틱</td><td>가상 조이스틱</td></tr>
+      <tr><td>짧은 패스 / 압박</td><td><kbd>J</kbd></td><td>A</td><td>패스 버튼</td></tr>
+      <tr><td>슛 (길게 누를수록 강하게) / 태클</td><td><kbd>K</kbd></td><td>B</td><td>슛 버튼</td></tr>
+      <tr><td>스루패스</td><td><kbd>L</kbd></td><td>Y</td><td>스루 버튼</td></tr>
+      <tr><td>로빙 패스 · 크로스</td><td><kbd>I</kbd></td><td>X</td><td>패스 버튼 위로 밀기</td></tr>
+      <tr><td>스프린트</td><td><kbd>Shift</kbd></td><td>RT</td><td>조이스틱 끝까지 밀기</td></tr>
+      <tr><td>선수 전환 (수비 시)</td><td><kbd>Space</kbd></td><td>LB</td><td>자동 전환 + 화면 탭</td></tr>
+    </tbody>
+  </table></div>
+  <figure>
+    <svg viewBox="0 0 800 360" role="img" aria-label="가로 화면 모바일 조작 배치: 왼쪽 아래 조이스틱, 오른쪽 아래 슛·패스·스루·스킬 버튼">
+      <rect x="4" y="4" width="792" height="352" rx="40" fill="var(--surface)" stroke="var(--line)" stroke-width="4"/>
+      <rect x="40" y="30" width="720" height="300" rx="10" fill="var(--turf)"/>
+      <line x1="400" y1="30" x2="400" y2="330" stroke="var(--chalk)" stroke-width="2"/>
+      <circle cx="400" cy="180" r="50" fill="none" stroke="var(--chalk)" stroke-width="2"/>
+      <rect x="330" y="44" width="140" height="30" rx="6" fill="var(--surface)"/>
+      <text x="400" y="65" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="16" fill="var(--fg)">1 - 0 · 63'</text>
+      <circle cx="140" cy="250" r="62" fill="var(--surface)" fill-opacity=".85" stroke="var(--muted)" stroke-width="2"/>
+      <circle cx="140" cy="250" r="26" fill="var(--muted)"/>
+      <text x="140" y="174" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-size="15" fill="var(--fg)">이동</text>
+      <circle cx="680" cy="250" r="42" fill="var(--accent)"/>
+      <text x="680" y="256" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-size="17" font-weight="700" fill="var(--surface)">슛</text>
+      <circle cx="590" cy="280" r="32" fill="var(--surface)" stroke="var(--accent)" stroke-width="3"/>
+      <text x="590" y="286" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-size="15" fill="var(--fg)">패스</text>
+      <circle cx="620" cy="190" r="28" fill="var(--surface)" stroke="var(--accent)" stroke-width="3"/>
+      <text x="620" y="196" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-size="14" fill="var(--fg)">스루</text>
+      <circle cx="700" cy="160" r="26" fill="var(--surface)" stroke="var(--away)" stroke-width="3"/>
+      <text x="700" y="166" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-size="14" fill="var(--fg)">스킬</text>
+    </svg>
+    <figcaption>모바일 가로 화면 배치. 엄지가 닿는 아래쪽 반원 안에 자주 쓰는 버튼을 모읍니다. 초보자용 "보조 모드"에서는 패스와 슛 방향을 자동으로 보정합니다.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <span class="eyebrow">04 선수</span>
+  <h2>선수 능력치</h2>
+  <p>능력치는 6개로 단순하게 시작합니다. 각 수치는 실제 물리값에 바로 연결되어, 숫자가 경기 안에서 체감되도록 합니다.</p>
+  <div class="table"><table>
+    <thead><tr><th>능력치</th><th>범위</th><th>경기에서 바뀌는 것</th></tr></thead>
+    <tbody>
+      <tr><td>스피드</td><td class="mono">1–99</td><td>최고 속도(약 6.5~9.5 m/s)와 가속</td></tr>
+      <tr><td>드리블</td><td class="mono">1–99</td><td>공을 몸에 붙이는 거리, 방향 전환 시 공을 놓칠 확률</td></tr>
+      <tr><td>패스</td><td class="mono">1–99</td><td>패스 방향·세기의 오차 범위</td></tr>
+      <tr><td>슈팅</td><td class="mono">1–99</td><td>슛 최고 속도, 조준 오차, 감아차기 회전량</td></tr>
+      <tr><td>수비</td><td class="mono">1–99</td><td>태클 성공 판정 범위, 가로채기 반응 속도</td></tr>
+      <tr><td>체력</td><td class="mono">1–99</td><td>스프린트 지속 시간, 후반 능력치 감소 폭</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted">골키퍼는 별도로 반응·다이빙·위치선정 3개 능력치를 씁니다. 포지션(GK·DF·MF·FW)은 AI가 맡는 역할을 정합니다.</p>
+</section>
+
+<section>
+  <span class="eyebrow">05 AI</span>
+  <h2>AI 설계</h2>
+  <p>축구 게임의 품질은 AI가 결정합니다. 내가 조작하지 않는 21명이 어떻게 움직이느냐에 따라 게임이 살아 보이기도 하고 바보 같아 보이기도 합니다. 그래서 AI는 두 층으로 나눕니다.</p>
+  <div class="two">
+    <div>
+      <h3>팀 AI · 어디에 있을까</h3>
+      <ul>
+        <li>포메이션 기준 위치를 공의 위치에 따라 밀고 당김</li>
+        <li>공격 시 대형을 넓히고, 수비 시 좁히고 라인을 내림</li>
+        <li>팀 전술 설정: 점유 / 역습 / 강한 압박</li>
+        <li>슛·패스 길을 계산해 "빈 공간"에 선수를 보냄</li>
+      </ul>
+    </div>
+    <div>
+      <h3>개인 AI · 무엇을 할까</h3>
+      <ul>
+        <li><b>공 소유</b>: 패스, 드리블, 슛 중 기대값이 가장 높은 선택</li>
+        <li><b>공격 지원</b>: 패스 받을 각도 만들기, 침투</li>
+        <li><b>압박</b>: 가장 가까운 1~2명이 공 가진 선수에게 접근</li>
+        <li><b>마킹·커버</b>: 위험한 상대를 따라가고 뒷공간 지키기</li>
+        <li><b>복귀</b>: 역습을 당하면 기준 위치로 전력 질주</li>
+      </ul>
+    </div>
+  </div>
+  <p>난이도는 AI의 판단 속도, 실수 확률, 판단할 때 살펴보는 선택지 수로 조절합니다. 능력치는 건드리지 않아서, 난이도가 높아져도 AI가 반칙처럼 느껴지지 않게 합니다.</p>
+</section>
+
+<section>
+  <span class="eyebrow">06 모드</span>
+  <h2>게임 모드</h2>
+  <div class="table"><table>
+    <thead><tr><th>모드</th><th>내용</th><th>단계</th></tr></thead>
+    <tbody>
+      <tr><td><b>빠른 경기</b></td><td>팀 두 개를 고르고 바로 한 경기</td><td>M1</td></tr>
+      <tr><td><b>로컬 2인</b> (PC)</td><td>키보드+패드 또는 패드 2개로 대전</td><td>M2</td></tr>
+      <tr><td><b>클럽 육성</b></td><td>하위 리그 약팀을 맡아 시즌 운영: 영입, 훈련, 유망주 성장, 승격</td><td>M4</td></tr>
+      <tr><td><b>컵 대회</b></td><td>16팀 토너먼트, 리그전</td><td>M4</td></tr>
+      <tr><td><b>에디터</b></td><td>팀·선수 이름, 유니폼 색, 엠블럼(도형 조합) 편집</td><td>M4</td></tr>
+      <tr><td><b>온라인 1대1</b></td><td>친선전 → 랭크전</td><td>M5 이후</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted">기본 리그는 가상 국가의 가상 리그(1부 16팀, 2부 16팀)로 구성합니다. 실명은 쓰지 않고, 이름은 에디터로 바꿀 수 있게 합니다. 수정한 데이터를 다른 사람과 공유하는 기능은 법적 문제가 생길 수 있어서 넣지 않습니다.</p>
+</section>
+
+<section>
+  <span class="eyebrow">07 기술</span>
+  <h2>기술 스택</h2>
+  <div class="callout">
+    <h3>결정: 두 개의 프로젝트로 진행</h3>
+    <ul>
+      <li><b>1단계 · 웹 버전</b> (<span class="mono">web/</span>): TypeScript + Three.js. 링크 하나로 PC와 모바일 브라우저에서 바로 플레이하며 재미를 검증합니다.</li>
+      <li><b>2단계 · Unity PC 버전</b> (<span class="mono">unity/</span>): 웹 버전에서 검증한 조작감, 공 물리, AI, 규칙을 바탕으로 Unity(C#)에서 새로 만드는 별도 프로젝트입니다. 애니메이션과 그래픽 품질을 높이고 Steam 출시를 노립니다.</li>
+      <li>두 프로젝트는 이 기획서(<span class="mono">docs/</span>)를 공유합니다. 웹 버전의 게임 로직(물리, AI, 규칙)은 화면 그리기 코드와 분리해 두어, Unity로 옮길 때 그대로 C#으로 바꿔 쓸 수 있게 합니다.</li>
+    </ul>
+  </div>
+  <p>아래 비교표는 엔진을 고를 때 검토한 내용입니다.</p>
+  <div class="table"><table>
+    <thead><tr><th>선택지</th><th>장점</th><th>단점</th></tr></thead>
+    <tbody>
+      <tr><td><b>TypeScript + Three.js</b><span class="pick">1단계</span></td><td>브라우저에서 바로 실행되고, PC·모바일 동시 대응. Steam은 Electron/Tauri로, 앱스토어는 Capacitor로 포장. 코드 중심이라 Claude Code와 함께 빠르게 반복하고 브라우저 자동 테스트도 가능</td><td>저사양 폰에서는 최적화 필요. 애니메이션 편집 도구가 적음</td></tr>
+      <tr><td><b>Unity</b><span class="pick">2단계</span></td><td>모바일·PC 출시 경험이 가장 많이 쌓인 엔진. 애셋스토어에 축구 애니메이션 등 자료가 많음</td><td>에디터 중심 작업이라 코드만으로 다루기 어려움. 요금 정책 변동</td></tr>
+      <tr><td><b>Godot 4</b></td><td>무료 오픈소스이고 가벼움. 2D·간단한 3D에 강함</td><td>모바일 3D 성능과 생태계가 상대적으로 작음</td></tr>
+      <tr><td><b>Unreal</b></td><td>그래픽 품질 최상</td><td>소규모 팀과 모바일에는 무겁고 과함</td></tr>
+    </tbody>
+  </table></div>
+  <h3>웹 버전 구성 세부</h3>
+  <ul>
+    <li><b>렌더링</b>: Three.js, 선수는 로우폴리 3D 모델 + 무료 애니메이션 라이브러리(달리기, 킥, 태클, 세리머니)</li>
+    <li><b>공 물리</b>: 직접 구현. 중력, 공기 저항, 바운드, 회전에 의한 휘어짐(감아차기)만 다루면 되므로 범용 물리 엔진보다 가볍고 조절하기 쉬움</li>
+    <li><b>게임 루프</b>: 60Hz 고정 시뮬레이션 + 렌더링 분리. 나중에 온라인과 리플레이를 붙이기 쉬움</li>
+    <li><b>코드 구조</b>: 게임 로직(물리·AI·규칙)과 화면(Three.js)·입력을 분리. 로직은 브라우저 없이도 테스트 가능하게</li>
+    <li><b>빌드·배포</b>: Vite로 빌드해 웹에 올림. 링크 하나로 PC·모바일에서 플레이</li>
+    <li><b>성능 목표</b>: PC 60fps, 중급 안드로이드폰 최소 30fps</li>
+  </ul>
+</section>
+
+<section>
+  <span class="eyebrow">08 로드맵</span>
+  <h2>개발 단계</h2>
+  <p>단계마다 "완료 기준"을 둡니다. 기준을 넘기 전에는 다음 단계로 가지 않습니다.</p>
+  <ol class="milestones">
+    <li><span class="tag">M0</span><div class="body"><h3>프로토타입</h3><p>경기장, 선수 1명, 공 물리, 드리블·패스·슛.</p><p class="done"><b>완료 기준</b>: 혼자 공을 몰고 가서 골을 넣는 것이 재미있다.</p></div></li>
+    <li><span class="tag">M1</span><div class="body"><h3>5대5 경기</h3><p>팀 AI 기본형, 선수 전환, 골·킥오프·점수·타이머, 빠른 경기 모드.</p><p class="done"><b>완료 기준</b>: AI 상대로 5분 경기가 끝까지 자연스럽게 진행된다.</p></div></li>
+    <li><span class="tag">M2</span><div class="body"><h3>11대11 정식 경기</h3><p>포메이션, 골키퍼 AI, 라인 아웃·코너·골킥·파울·오프사이드, 로컬 2인.</p><p class="done"><b>완료 기준</b>: 처음 해보는 사람이 "축구 게임 같다"고 느낀다.</p></div></li>
+    <li><span class="tag">M3</span><div class="body"><h3>모바일 대응</h3><p>터치 조작, 보조 모드, 화면 UI, 성능 최적화.</p><p class="done"><b>완료 기준</b>: 중급 안드로이드폰에서 30fps 이상으로 한 경기를 끝낼 수 있다.</p></div></li>
+    <li><span class="tag">M4</span><div class="body"><h3>콘텐츠</h3><p>가상 리그 32팀, 클럽 육성 모드, 컵 대회, 에디터, 효과음과 관중 소리.</p><p class="done"><b>완료 기준</b>: 한 시즌을 처음부터 끝까지 플레이할 수 있다.</p></div></li>
+    <li><span class="tag">M5</span><div class="body"><h3>웹 버전 공개</h3><p>웹 버전을 링크로 공개하고 피드백을 모읍니다. 온라인 1대1은 반응을 보고 결정합니다.</p><p class="done"><b>완료 기준</b>: 외부 테스터가 PC와 폰에서 큰 버그 없이 플레이한다.</p></div></li>
+    <li><span class="tag">U1</span><div class="body"><h3>Unity PC 버전 시작</h3><p>별도 프로젝트로 시작합니다. 웹 버전의 로직을 C#으로 옮기고, 선수 애니메이션과 그래픽을 새로 만듭니다. 목표는 Steam 출시입니다.</p><p class="done"><b>완료 기준</b>: 웹 버전과 같은 11대11 경기가 Unity에서 더 자연스러운 움직임으로 돌아간다.</p></div></li>
+  </ol>
+</section>
+
+<section>
+  <span class="eyebrow">09 리스크</span>
+  <h2>위험 요소와 대응</h2>
+  <div class="table"><table>
+    <thead><tr><th>위험</th><th>대응</th></tr></thead>
+    <tbody>
+      <tr><td>AI가 어색해서 게임 전체가 싸 보임</td><td>M1부터 AI에 가장 많은 시간을 씀. 디버그 화면으로 각 선수의 판단을 눈으로 확인</td></tr>
+      <tr><td>조작감이 둔함</td><td>M0에서 입력 반응 속도와 공 터치감을 먼저 확정</td></tr>
+      <tr><td>모바일 성능 부족</td><td>모델 폴리곤 제한, 같은 모델 재사용(인스턴싱), 그림자·관중 품질 옵션</td></tr>
+      <tr><td>기능이 계속 늘어남</td><td>로드맵 단계별 완료 기준을 지키고, 온라인은 M5 이후로 고정</td></tr>
+      <tr><td>라이선스·저작권</td><td>실제 구단·선수 이름, 엠블럼, 기존 게임의 UI와 이름을 쓰지 않음</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <span class="eyebrow">10 결정 필요</span>
+  <h2>정해야 할 것</h2>
+  <ul>
+    <li><b>엔진</b>: <s>미정</s> → 결정됨. 1단계 웹(Three.js), 2단계 Unity PC (별도 프로젝트)</li>
+    <li><b>시점과 그래픽</b>: 3D 로우폴리(추천) 또는 2D 탑뷰(개발이 훨씬 빠름)</li>
+    <li><b>수익 모델</b>: 1회 구매, 무료+광고, 무료+꾸미기 아이템 중 선택 (M4 전까지)</li>
+    <li><b>게임 이름</b>: PITCHLINE은 가제</li>
+  </ul>
+</section>
+
+</div>
