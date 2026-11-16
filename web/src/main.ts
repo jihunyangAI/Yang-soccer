@@ -110,7 +110,8 @@ const cycleZoom = () => { zoomIdx = (zoomIdx + 1) % ZOOMS.length; view.zoom = ZO
 const sound = new Sound();
 const talk = new Commentary(root);
 talk.voiceOn = sound.enabled;
-const talkLabel = () => (talk.enabled ? '해설 켬' : '해설 끔');
+// A browser with no speech at all (some in-app browsers) still gets the captions.
+const talkLabel = () => (talk.enabled ? (talk.canSpeak ? '해설 켬' : '해설 자막만') : '해설 끔');
 const toggleTalk = () => {
   talk.setEnabled(!talk.enabled);
   talkBtn.textContent = talkLabel();

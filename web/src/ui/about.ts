@@ -55,6 +55,7 @@ export function deviceReport(touch: boolean): string {
     `화면 ${window.innerWidth}×${window.innerHeight} (배율 ${window.devicePixelRatio}) · ${touch ? '터치' : '키보드/패드'}`,
     `브라우저 ${navigator.userAgent}`,
     `한국어 음성: ${voice}`,
+    `해설: ${(window as unknown as { __talk?: { diagnostics: string } }).__talk?.diagnostics ?? '-'}`,
     `저장: 리그 ${has('pitchline.league.v1')} · 컵 ${has('pitchline.cup.v1')} · 육성 ${has('pitchline.career.v1')} · 에디터 ${has('pitchline.custom.v1')}`,
   ].join('\n');
 }

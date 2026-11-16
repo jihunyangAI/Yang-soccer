@@ -96,22 +96,37 @@ export class Commentary {
     };
     find();
     this.synth?.addEventListener?.('voiceschanged', find);
-    // Browsers only allow speech after the player has touched the page: wake it with a silent line.
+    // Browsers only allow speech once the player has really touched the page, and phones only
+    // count the end of a touch (not its start) as that. A silent line is spoken on each touch
+    // until one is actually heard to start, which is what unlocks speech for the match.
     const unlock = () => {
-      if (this.unlocked || !this.synth) return;
-      this.unlocked = true;
+      if (this.unlocked || !this.synth || this.unlockTries >= 8) return;
+      this.unlockTries++;
       try {
-        const u = new SpeechSynthesisUtterance(' ');
+        const u = new SpeechSynthesisUtterance('.');
+        u.lang = 'ko-KR';
         u.volume = 0;
+        u.onstart = u.onend = () => { this.unlocked = true; };
+        u.onerror = (e) => { this.lastError = `unlock: ${e.error}`; };
+        this.synth.resume();
         this.synth.speak(u);
-      } catch { /* speech not available */ }
+      } catch (e) { this.lastError = `unlock: ${String(e)}`; }
     };
-    window.addEventListener('pointerdown', unlock);
-    window.addEventListener('keydown', unlock);
+    for (const ev of ['pointerup', 'touchend', 'click', 'keydown'] as const) window.addEventListener(ev, unlock);
+  }
+
+  private unlockTries = 0;
+  private started = 0;
+  private lastError = '';
+  /** What the speech side of this device is doing, for a tester's report. */
+  get diagnostics(): string {
+    if (!this.synth) return '음성 기능 없음 (이 브라우저는 자막만 나옵니다)';
+    const ko = this.synth.getVoices().filter((v) => v.lang.toLowerCase().startsWith('ko')).length;
+    return `한국어 음성 ${ko}개 · 잠금 ${this.unlocked ? '해제' : `안 풀림(${this.unlockTries}회 시도)`} · 말한 문장 ${this.started}개${this.lastError ? ` · 오류 ${this.lastError}` : ''}`;
   }
 
   /** Whether this device can speak Korean (otherwise the commentary is captions only). */
-  get canSpeak(): boolean { return !!this.synth && !!this.cast.caster.voice; }
+  get canSpeak(): boolean { return !!this.synth; }
   /** The voices in use, for checking a device. */
   get voices(): string { return `${this.cast.caster.voice?.name ?? '-'} (${this.cast.caster.pitch}) / ${this.cast.analyst.voice?.name ?? '-'} (${this.cast.analyst.pitch})`; }
 
@@ -123,7 +138,9 @@ export class Commentary {
 
   /** Stop talking and clear the caption (pause, leaving the match, switching off). */
   hush(): void {
-    try { this.synth?.cancel(); } catch { /* ignore */ }
+    // Only when the booth is actually talking: cancelling here would also cut off the silent
+    // line that unlocks speech on a phone, which is spoken on the very tap that starts a match.
+    if (this.busy > 0 || this.queue.length) { try { this.synth?.cancel(); } catch { /* ignore */ } }
     this.queue = [];
     this.busy = 0; this.busyP = 0; this.captionTime = 0;
     this.el.classList.remove('show');
@@ -160,10 +177,15 @@ export class Commentary {
     this.el.appendChild(document.createTextNode(line.text));
     this.el.className = `caption show ${line.mood}`;
     this.captionTime = Math.max(1.8, this.busy + 0.9);
-    if (!this.voiceOn || !this.synth || !who.voice) return;
+    if (!this.voiceOn || !this.synth) return;
     try {
       const u = new SpeechSynthesisUtterance(line.text);
-      u.voice = who.voice; u.lang = who.voice.lang;
+      // Many phones do not list their voices but still speak when asked for Korean, so a
+      // missing list is not a reason to stay silent.
+      if (who.voice) { u.voice = who.voice; u.lang = who.voice.lang; } else u.lang = 'ko-KR';
+      u.onstart = () => { this.started++; this.unlocked = true; };
+      u.onerror = (e) => { this.lastError = e.error; };
+      this.synth.resume(); // a phone that put the page in the background can leave speech paused
       u.rate = rate;
       // A voice that was pitched down to sound male must not climb back up to its own pitch when excited.
       u.pitch = Math.max(0.1, Math.min(2, who.pitch * (who.pitch < 0.9 ? mood.pitch ** 0.6 : mood.pitch)));
