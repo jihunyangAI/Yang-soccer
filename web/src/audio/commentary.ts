@@ -115,6 +115,33 @@ export class Commentary {
     for (const ev of ['pointerup', 'touchend', 'click', 'keydown'] as const) window.addEventListener(ev, unlock);
   }
 
+  /**
+   * Speak one line out loud, straight from a button press (which is the one moment every
+   * browser allows speech), and report in words what happened. It also unlocks speech for the
+   * match if the automatic unlocking did not work on this device.
+   */
+  test(): Promise<string> {
+    return new Promise((resolve) => {
+      const synth = this.synth;
+      if (!synth) { resolve('이 브라우저에는 음성 기능이 없습니다. 크롬이나 사파리로 직접 열어 주세요. (카카오톡 등 앱 안에서 연 화면은 음성이 안 되는 경우가 많습니다)'); return; }
+      let done = false;
+      const finish = (msg: string) => { if (!done) { done = true; resolve(msg); } };
+      try {
+        synth.cancel();
+        const u = new SpeechSynthesisUtterance('안녕하십니까! 해설 음성 테스트입니다.');
+        const v = this.cast.caster.voice;
+        if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'ko-KR';
+        u.volume = 1; u.rate = 1.2;
+        u.onstart = () => { this.unlocked = true; this.started++; finish('음성이 재생되고 있습니다. 들리지 않으면 휴대폰의 미디어 음량과 무음 모드를 확인해 주세요.'); };
+        u.onerror = (e) => { this.lastError = `test: ${e.error}`; finish(`음성을 재생하지 못했습니다 (${e.error}). 휴대폰 설정의 "글자 읽어주기(TTS)"에 한국어 음성이 설치되어 있는지 확인해 주세요.`); };
+        synth.resume();
+        synth.speak(u);
+        // No start and no error: the browser accepted the request and did nothing with it.
+        setTimeout(() => finish('브라우저가 음성 요청에 응답하지 않습니다. 이 기기에서는 내장 음성으로 해설을 낼 수 없습니다.'), 3500);
+      } catch (e) { finish(`음성 기능 오류: ${String(e)}`); }
+    });
+  }
+
   private unlockTries = 0;
   private started = 0;
   private lastError = '';
@@ -133,7 +160,21 @@ export class Commentary {
   setEnabled(on: boolean): void {
     this.enabled = on;
     try { localStorage.setItem(STORE_KEY, on ? 'on' : 'off'); } catch { /* ignore */ }
-    if (!on) this.hush();
+    if (!on) { this.hush(); return; }
+    // Switched on by a button press: say so at once. Speaking from the press itself is also
+    // what unlocks speech on a phone where the automatic unlocking did not take.
+    if (this.voiceOn && this.synth) {
+      try {
+        const u = new SpeechSynthesisUtterance('해설을 켰습니다.');
+        const v = this.cast.caster.voice;
+        if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'ko-KR';
+        u.rate = 1.3;
+        u.onstart = () => { this.unlocked = true; this.started++; };
+        u.onerror = (e) => { this.lastError = e.error; };
+        this.synth.resume();
+        this.synth.speak(u);
+      } catch { /* speech not available */ }
+    }
   }
 
   /** Stop talking and clear the caption (pause, leaving the match, switching off). */

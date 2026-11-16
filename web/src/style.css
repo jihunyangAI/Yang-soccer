@@ -572,8 +572,25 @@ body.touch-mode .help { display: none; }
 @keyframes caption-shake { 0%, 100% { transform: translate(-50%, 0); } 25% { transform: translate(calc(-50% - 4px), -2px); } 75% { transform: translate(calc(-50% + 4px), 2px); } }
 @media (prefers-reduced-motion: reduce) { .caption.shout { animation: none; } }
 body.in-menu .caption { display: none; }
-/* On touch screens the thumbs are at the bottom: the caption goes up under the scoreboard. */
-body.touch-mode .caption { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 94px); font-size: 13px; padding: 5px 10px; }
+/*
+ * Phones: the thumbs are at the bottom and the pitch is small, so the caption is a thin strip
+ * under the scoreboard — small type, two lines at most, see-through — and shouts are only a
+ * little bigger instead of filling the screen.
+ */
+@media (pointer: coarse), (max-height: 520px), (max-width: 700px) {
+  .caption, .caption.shout, .caption.joy, .caption.shock, .caption.tense, .caption.sad {
+    bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 52px);
+    max-width: min(62vw, 440px); padding: 3px 9px;
+    font-size: 12px; font-weight: 600; line-height: 1.35; text-align: left;
+    background: rgba(6, 12, 9, 0.55); border-color: transparent; color: var(--ink);
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+    animation: none;
+  }
+  .caption.shout { font-size: 14px; font-weight: 900; color: var(--accent); }
+  .caption b { font-size: 10px; margin-right: 5px; padding: 0 5px; }
+}
+/* Narrow screens show match notices on that row, so the caption sits below them. */
+@media (max-width: 700px) { .caption, .caption.shout, .caption.joy, .caption.shock, .caption.tense, .caption.sad { top: calc(env(safe-area-inset-top, 0px) + 92px); max-width: calc(100vw - 24px); } }
 
 /* ---------- penalty shoot-out ---------- */
 .pens {

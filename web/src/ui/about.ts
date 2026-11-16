@@ -39,11 +39,23 @@ export function helpHtml(touch: boolean): string {
       <div>리그·컵·클럽 육성의 진행 상황과 팀 에디터로 바꾼 내용은 이 기기에 자동 저장됩니다.</div>
     </div>
     <div class="hp-block">
+      <div class="card-label">해설 음성 확인</div>
+      <div>해설 목소리가 들리지 않으면 아래 버튼을 눌러 보세요. 이 기기에서 음성이 되는지 바로 알려 드리고, 되는 기기라면 이후 경기에서도 들리게 됩니다.</div>
+      <div class="lg-actions"><button type="button" class="lg-ghost" data-act="help-voice">테스트 음성 듣기</button></div>
+      <div class="ed-note" data-id="voice-note" role="status">${talkStatus()}</div>
+    </div>
+    <div class="hp-block">
       <div class="card-label">테스트해 주시는 분께</div>
       <div>이상한 점을 알려주실 때 아래 버튼으로 복사한 정보를 함께 보내 주시면 원인을 찾기 쉽습니다.</div>
       <div class="lg-actions"><button type="button" class="lg-ghost" data-act="help-copy">기기 정보 복사</button><span class="ed-note" data-id="copy-note" role="status"></span></div>
     </div>`;
 }
+
+interface TalkProbe { diagnostics: string; test(): Promise<string> }
+const talk = (): TalkProbe | undefined => (window as unknown as { __talk?: TalkProbe }).__talk;
+const talkStatus = (): string => talk()?.diagnostics ?? '';
+/** Speak a test line (must be called from a button press) and say what happened. */
+export const testVoice = (): Promise<string> => talk()?.test() ?? Promise.resolve('해설 기능을 찾을 수 없습니다.');
 
 /** A few lines about this device and build, for a tester to paste next to their feedback. */
 export function deviceReport(touch: boolean): string {
@@ -55,7 +67,7 @@ export function deviceReport(touch: boolean): string {
     `화면 ${window.innerWidth}×${window.innerHeight} (배율 ${window.devicePixelRatio}) · ${touch ? '터치' : '키보드/패드'}`,
     `브라우저 ${navigator.userAgent}`,
     `한국어 음성: ${voice}`,
-    `해설: ${(window as unknown as { __talk?: { diagnostics: string } }).__talk?.diagnostics ?? '-'}`,
+    `해설: ${talkStatus() || '-'}`,
     `저장: 리그 ${has('pitchline.league.v1')} · 컵 ${has('pitchline.cup.v1')} · 육성 ${has('pitchline.career.v1')} · 에디터 ${has('pitchline.custom.v1')}`,
   ].join('\n');
 }

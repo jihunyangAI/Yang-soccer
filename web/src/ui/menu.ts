@@ -1,6 +1,6 @@
 import type { Difficulty, MatchConfig } from '../sim/match';
 import { DIVISION_NAME, FORMATION_NAMES, overall, TEAMS } from '../sim/team';
-import { copyText, deviceReport, helpHtml } from './about';
+import { copyText, deviceReport, helpHtml, testVoice } from './about';
 import { CareerScreen } from './career';
 import { crestSvg } from './crest';
 import { CupScreen } from './cup';
@@ -274,6 +274,12 @@ export class Menu {
       case 'career': this.screen = 'career'; break;
       case 'help': this.screen = 'help'; break;
       case 'help-exit': this.screen = 'quick'; break;
+      case 'help-voice': {
+        const note = this.el.querySelector('[data-id="voice-note"]');
+        if (note) note.textContent = '확인하는 중…';
+        void testVoice().then((msg) => { const n = this.el.querySelector('[data-id="voice-note"]'); if (n) n.textContent = msg; });
+        return;
+      }
       case 'help-copy':
         void copyText(deviceReport(!this.allowTwoPlayer())).then((ok) => {
           const note = this.el.querySelector('[data-id="copy-note"]');
