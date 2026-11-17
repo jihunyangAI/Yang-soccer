@@ -507,6 +507,33 @@ body.touch-mode .help { display: none; }
 .btn-switch { width: 54px; height: 54px; right: 178px; bottom: 112px; font-size: 13px; }
 .touch.defend .btn-shoot { background: rgba(232, 85, 59, 0.32); }
 
+/*
+ * Thumb layout. Distances are measured from the bottom-right corner, where the right thumb
+ * pivots: shoot sits where the thumb rests, pass and through a short reach away along its
+ * arc, lob above, and switch further out (it is rarely needed in attack). Nothing is smaller
+ * than a fingertip, and no button has to be held while another is pressed: sprinting is done
+ * with the stick.
+ */
+.touch.thumb .buttons { width: 270px; height: 240px; }
+.touch.thumb .btn-sprint { display: none; }
+.touch.thumb .btn-shoot { width: 92px; height: 92px; right: 10px; bottom: 16px; font-size: 19px; }
+.touch.thumb .btn-pass { width: 76px; height: 76px; right: 116px; bottom: 0; font-size: 16px; }
+.touch.thumb .btn-through { width: 68px; height: 68px; right: 88px; bottom: 94px; }
+.touch.thumb .btn-lob { width: 62px; height: 62px; right: 2px; bottom: 126px; }
+.touch.thumb .btn-switch { width: 56px; height: 56px; right: 168px; bottom: 110px; font-size: 13px; }
+/* Defending: only press, tackle and switch matter, so switch takes the through-ball's place. */
+.touch.thumb.defend .btn-switch { width: 72px; height: 72px; right: 86px; bottom: 92px; font-size: 16px; }
+/* The stick shows where the sprint begins: a faint outer ring that lights up when it is passed. */
+.touch.thumb .joy-base::after {
+  content: '달리기'; position: absolute; inset: -22px; border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  font: 700 10px var(--font); color: rgba(255, 255, 255, 0.55); text-align: center; line-height: 14px;
+  display: none;
+}
+.touch.thumb .joy-base.active::after { display: block; }
+.touch.thumb .joy-base.sprint::after { border-color: var(--accent); border-style: solid; color: var(--accent); }
+.touch.thumb .joy-base.sprint .joy-knob { background: rgba(255, 225, 77, 0.75); }
+
 @media (orientation: portrait) {
   body.touch-mode .rotate-hint {
     display: block; position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 64px);
@@ -642,6 +669,9 @@ body.touch-mode .help { display: none; }
 .novoice-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .novoice .ed-note:empty { display: none; }
 .novoice .ed-note { word-break: break-all; }
+
+.touch-only { display: none; }
+body.touch-mode .touch-only { display: block; }
 
 /* ---------- commentary caption ---------- */
 .caption {

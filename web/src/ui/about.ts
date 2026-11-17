@@ -26,7 +26,9 @@ export function helpHtml(touch: boolean): string {
     <div class="hp-block">
       <div class="card-label">터치 (휴대폰은 가로로 돌려서)</div>
       <div>화면 왼쪽을 누른 채 움직이면 이동합니다.</div>
-      <div>오른쪽 버튼: <b>슛</b>(길게 누르면 세게) · <b>패스</b> · <b>스루</b> · <b>로빙</b> · <b>달리기</b> · <b>전환</b></div>
+      <div>오른쪽 버튼: <b>슛</b>(길게 누르면 세게) · <b>패스</b> · <b>스루</b> · <b>로빙</b> · <b>전환</b></div>
+      <div><b>달리기</b>는 이동하는 엄지를 스틱 원 바깥의 점선까지 더 밀면 됩니다.</div>
+      <div>일시정지 메뉴에서 버튼 배치를 예전 방식(달리기 버튼 따로)으로 바꿀 수 있습니다.</div>
       <div>수비할 때는 패스 버튼이 <b>압박</b>, 슛 버튼이 <b>태클</b>로 바뀝니다.</div>
     </div>`;
   return `

@@ -7,9 +7,23 @@ export function buzz(ms: number): void {
   try { navigator.vibrate?.(ms); } catch { /* not allowed */ }
 }
 
+/**
+ * Button layouts.
+ * 'thumb': the buttons sit on an arc round where the right thumb rests, biggest and nearest
+ *   for what is used most, and sprinting is done by pushing the stick past its ring — so the
+ *   right thumb never has to hold one button while pressing another.
+ * 'classic': the original layout, with a separate sprint button.
+ */
+export type TouchLayout = 'thumb' | 'classic';
+const LAYOUT_KEY = 'pitchline.touch.v1';
+/** How far past the stick's ring (in ring radii) the thumb has to go to sprint. */
+const SPRINT_PUSH = 1.3;
+
 export interface TouchControls {
   /** Relabel buttons for attack (pass/shoot) or defence (press/tackle). */
   setMode(mode: 'attack' | 'defend'): void;
+  readonly layout: TouchLayout;
+  setLayout(layout: TouchLayout): void;
 }
 
 /**
@@ -37,6 +51,16 @@ export function mountTouchControls(root: HTMLElement, input: Input): TouchContro
   const knob = layer.querySelector<HTMLDivElement>('.joy-knob')!;
   let joyId: number | null = null;
   let ox = 0, oy = 0;
+  let layout: TouchLayout = 'thumb';
+  try { if (localStorage.getItem(LAYOUT_KEY) === 'classic') layout = 'classic'; } catch { /* storage blocked */ }
+  layer.classList.add(layout);
+  let joySprint = false;
+  const setJoySprint = (on: boolean) => {
+    if (on === joySprint) return;
+    joySprint = on;
+    base.classList.toggle('sprint', on);
+    if (on) { input.touchPress('sprint'); buzz(8); } else input.touchRelease('sprint');
+  };
 
   const show = () => document.body.classList.add('touch-mode');
 
@@ -57,6 +81,8 @@ export function mountTouchControls(root: HTMLElement, input: Input): TouchContro
     if (e.pointerId !== joyId) return;
     let dx = e.clientX - ox, dy = e.clientY - oy;
     const d = Math.hypot(dx, dy);
+    // Thumb layout: dragging well past the ring is the sprint.
+    setJoySprint(layout === 'thumb' && d > JOY_RADIUS * SPRINT_PUSH);
     if (d > JOY_RADIUS) { dx = (dx / d) * JOY_RADIUS; dy = (dy / d) * JOY_RADIUS; }
     knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
     input.setTouchMove(dx / JOY_RADIUS, dy / JOY_RADIUS);
@@ -65,6 +91,7 @@ export function mountTouchControls(root: HTMLElement, input: Input): TouchContro
     if (e.pointerId !== joyId) return;
     joyId = null;
     base.classList.remove('active');
+    setJoySprint(false);
     input.setTouchMove(0, 0);
   };
   zone.addEventListener('pointerup', endJoy);
@@ -104,6 +131,15 @@ export function mountTouchControls(root: HTMLElement, input: Input): TouchContro
   const passBtn = layer.querySelector<HTMLButtonElement>('.btn-pass')!;
   let current: 'attack' | 'defend' = 'attack';
   return {
+    get layout() { return layout; },
+    setLayout(next) {
+      setJoySprint(false);
+      input.touchRelease('sprint');
+      layer.classList.remove(layout);
+      layout = next;
+      layer.classList.add(layout);
+      try { localStorage.setItem(LAYOUT_KEY, next); } catch { /* ignore */ }
+    },
     setMode(mode) {
       if (mode === current) return;
       current = mode;

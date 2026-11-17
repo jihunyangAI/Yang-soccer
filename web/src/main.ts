@@ -54,10 +54,17 @@ pauseEl.innerHTML = `<div class="pause-card">
   <div class="title">일시정지</div>
   <button type="button" class="primary" data-p="resume">계속하기</button>
   <button type="button" data-p="subs">선수 교체</button>
+  <button type="button" data-p="layout" class="touch-only"></button>
   <button type="button" data-p="restart">처음부터</button>
   <button type="button" data-p="menu">메뉴로</button>
 </div>`;
 root.appendChild(pauseEl);
+/** The pause menu offers the other touch layout, so the two can be compared mid-match. */
+const layoutLabel = () => {
+  pauseEl.querySelector<HTMLElement>('[data-p="layout"]')!.textContent =
+    touch.layout === 'thumb' ? '버튼 배치: 엄지형 (기본형으로 바꾸기)' : '버튼 배치: 기본형 (엄지형으로 바꾸기)';
+};
+layoutLabel();
 const subs = new SubsPanel(root);
 subs.onClose = () => { pauseEl.hidden = false; };
 function setPaused(on: boolean): void {
@@ -72,6 +79,7 @@ pauseEl.addEventListener('click', (e) => {
   const act = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-p]')?.dataset.p;
   if (act === 'resume') setPaused(false);
   if (act === 'subs') { pauseEl.hidden = true; subs.show(match); }
+  if (act === 'layout') { touch.setLayout(touch.layout === 'thumb' ? 'classic' : 'thumb'); layoutLabel(); }
   if (act === 'restart' && lastConfig) { setPaused(false); startMatch(lastConfig); }
   if (act === 'menu') { setPaused(false); toMenu(); }
 });
