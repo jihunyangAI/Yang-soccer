@@ -511,6 +511,31 @@ type Internals = { foul(t: Player, v: Player, fromBehind: boolean): void };
     `start ok=${startOk} match ok=${matchOk} transfers=${refused}/${bought}/${sold}/${floor} young players improved ${grew}/${young.length}, best XI ${start.rating}→${C.squadRating(c)}, money ${start.money}→${c.money}, retired ${retired}, history ${c.history.map((h) => `${h.division}부 ${h.position}위`).join(', ')}`);
 }
 
+// Automatic switching: without the ball, control settles on a player near it and does not flicker.
+{
+  let near = 0, ticks = 0, switches = 0, seconds = 0;
+  for (let g = 0; g < 3; g++) {
+    const m = new Match({ seed: 60 + g, humans: ['home'], seconds: 600, home: TEAMS[2 + g], away: TEAMS[9 + g] });
+    let last = m.ctrl.home;
+    for (let k = 0; k < 60 * 40; k++) {
+      m.step({ home: idle() }, DT);
+      m.events.length = 0;
+      const o = m.owner();
+      if (m.phase !== 'play' || !o || o.team !== 'away' || o.role !== 'field') { last = m.ctrl.home; continue; }
+      seconds += DT;
+      if (m.ctrl.home !== last) { switches++; last = m.ctrl.home; }
+      // Is the controlled player among the three home players nearest the ball?
+      const d = (p: Player) => Math.hypot(p.pos.x - m.ball.pos.x, p.pos.z - m.ball.pos.z);
+      const order = m.players.filter((p) => p.team === 'home' && p.role === 'field' && !p.sentOff).sort((x, y) => d(x) - d(y));
+      ticks++;
+      if (order.slice(0, 3).some((p) => p.id === m.ctrl.home)) near++;
+    }
+  }
+  const share = near / Math.max(1, ticks), rate = switches / Math.max(1, seconds);
+  check('auto switch: while defending, control stays with a player near the ball without flickering', ticks > 600 && share > 0.85 && rate < 1.2,
+    `one of the 3 nearest ${(share * 100).toFixed(0)}% of the time, ${rate.toFixed(2)} switches a second over ${seconds.toFixed(0)} s`);
+}
+
 // Switching player: with the stick at rest the new player goes for the ball; moving the stick takes over.
 {
   const m = new Match({ seed: 31, humans: ['home'], seconds: 600 });

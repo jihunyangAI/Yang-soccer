@@ -1,5 +1,5 @@
 import { createBall, placeBall, stepBall, type Ball, type Team } from './ball';
-import { aiCarrier, aiOffBall, formationTarget, passScore, type AiDecision, type Role } from './ai';
+import { aiCarrier, aiOffBall, formationTarget, interceptPoint, passScore, type AiDecision, type Role } from './ai';
 import { BALL_RADIUS as R, BOX, GOAL, GRAVITY, PITCH } from './constants';
 import { createKeeper, keeperTakeBall, keeperThrow, resetKeeper, updateKeeper, type Keeper } from './keeper';
 import { clamp, wrapAngle, type V2 } from './math';
@@ -127,6 +127,8 @@ export class Match {
    */
   readonly autoRun: Record<Team, boolean> = { home: false, away: false };
   private lastCtrl: Record<Team, number> = { home: -1, away: -1 };
+  /** Seconds before control may switch by itself again (longer after the player switched by hand). */
+  private switchLock: Record<Team, number> = { home: 0, away: 0 };
   /** 'defend' when the opponent has the ball: pass = press, shoot = tackle. */
   readonly mode: Record<Team, 'attack' | 'defend'> = { home: 'attack', away: 'attack' };
   readonly rng: Rng;
@@ -459,6 +461,37 @@ export class Match {
     this.phase = phase;
     this.phaseTimer = time;
     this.restart = restart;
+  }
+
+  /**
+   * How far a player is from winning the ball, in metres: the distance to where the ball is
+   * going (ahead of a dribbler, or the nearest point of a loose ball's path), plus a handicap
+   * for a player the attack has already gone past, who would have to catch up from behind.
+   */
+  private reach(p: Player): number {
+    const b = this.ball;
+    const owner = this.owner();
+    let tx: number, tz: number;
+    if (owner) { tx = owner.pos.x + owner.vel.x * 0.35; tz = owner.pos.z + owner.vel.z * 0.35; }
+    else { const ip = interceptPoint(b, p); tx = ip.x; tz = ip.z; }
+    let d = Math.hypot(p.pos.x - tx, p.pos.z - tz);
+    if (owner && owner.team !== p.team) {
+      // Positive when the player is on the wrong side of the ball: further from his own goal than it is.
+      const past = (p.pos.x - tx) * this.dir(p.team);
+      if (past > 1) d += Math.min(7, past * 0.7);
+    }
+    return d;
+  }
+
+  /** The outfield player of a team best placed to win the ball. */
+  private bestPlaced(team: Team, exclude = -1): Player {
+    let best = this.fieldOf(team)[0], bd = Infinity;
+    for (const p of this.fieldOf(team)) {
+      if (p.id === exclude) continue;
+      const d = this.reach(p);
+      if (d < bd) { bd = d; best = p; }
+    }
+    return best;
   }
 
   private nearestField(team: Team, at: { x: number; z: number }, exclude = -1): Player {
@@ -809,14 +842,25 @@ export class Match {
       const a = input[team] ?? NO_INPUT;
       this.mode[team] = ownerTeam && ownerTeam !== team ? 'defend' : 'attack';
       const human = this.players[this.ctrl[team]];
+      this.switchLock[team] = Math.max(0, this.switchLock[team] - dt);
+      const mine = !!owner && owner.team === team;
+      const comingToUs = b.ownerId === -1 && b.intendedId >= 0 && this.players[b.intendedId].team === team;
       if (playing && a.down.has('switch')) {
-        if (!(owner && owner.id === human.id)) this.ctrl[team] = this.nearestField(team, b.pos, human.id).id;
-      } else if (playing && this.mode[team] === 'defend' && Math.hypot(a.mx, a.mz) < 0.1) {
-        // Idle while defending: hand control to a much closer teammate.
-        const near = this.nearestField(team, b.pos);
-        const dMe = Math.hypot(human.pos.x - b.pos.x, human.pos.z - b.pos.z);
-        const dNear = Math.hypot(near.pos.x - b.pos.x, near.pos.z - b.pos.z);
-        if (near.id !== human.id && dMe - dNear > 8) this.ctrl[team] = near.id;
+        // By hand: the next best-placed player, and the choice is left alone for a moment.
+        if (!(owner && owner.id === human.id)) {
+          this.ctrl[team] = this.bestPlaced(team, human.id).id;
+          this.switchLock[team] = 1.6;
+        }
+      } else if (playing && !mine && !comingToUs && this.switchLock[team] === 0) {
+        // Without the ball, control goes by itself to whoever is best placed to win it: the
+        // nearest to where the ball is going, counting a player the play has gone past as
+        // further away. It only changes when someone is clearly better, so it does not flicker.
+        const best = this.bestPlaced(team);
+        const now = this.reach(human), then = this.reach(best);
+        if (best.id !== human.id && then < now - 2.5 && then < now * 0.78) {
+          this.ctrl[team] = best.id;
+          this.switchLock[team] = 0.45;
+        }
       }
       const c = this.players[this.ctrl[team]];
       let mx = a.mx, mz = a.mz, sprint = a.sprint;
