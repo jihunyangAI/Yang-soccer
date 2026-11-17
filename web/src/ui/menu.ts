@@ -1,6 +1,7 @@
 import type { Difficulty, MatchConfig } from '../sim/match';
 import { DIVISION_NAME, FORMATION_NAMES, overall, TEAMS } from '../sim/team';
-import { ballIcon, copyText, deviceReport, helpHtml, noVoiceNotice, openExternal, testVoice, TITLE } from './about';
+import { copyText, deviceReport, helpHtml, noVoiceNotice, openExternal, testVoice, TITLE } from './about';
+import ballUrl from '../assets/ball.png';
 import { CareerScreen } from './career';
 import { crestSvg } from './crest';
 import { CupScreen } from './cup';
@@ -156,10 +157,13 @@ export class Menu {
       return;
     }
     this.el.innerHTML = `
-      <div class="menu-card">
-        <div class="menu-head">
-          <h1>${ballIcon()}${TITLE}</h1>
-          <span class="menu-sub">11대11 · ${TEAMS.length}개 클럽 · 베타</span>
+      <div class="menu-card home">
+        <div class="brand">
+          <img class="brand-ball" src="${ballUrl}" alt="" width="72" height="77">
+          <div class="brand-text">
+            <h1><span>${TITLE.slice(0, 4)}</span>${TITLE.slice(4)}</h1>
+            <span class="menu-sub">11 대 11 축구 · ${TEAMS.length}개 클럽 · 베타</span>
+          </div>
           <button type="button" class="lg-ghost menu-help" data-act="help">조작법</button>
         </div>
         ${noVoiceNotice()}

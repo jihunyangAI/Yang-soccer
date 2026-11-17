@@ -1,26 +1,6 @@
 /** The game's name as shown to players. (Saved games keep their older `pitchline.*` storage keys.) */
 export const TITLE = 'YangSoccer';
 
-/** A football for the title: a white ball with the classic black pentagons. */
-export function ballIcon(): string {
-  const at = (deg: number, r: number) => { const a = (deg * Math.PI) / 180; return `${(32 + Math.cos(a) * r).toFixed(1)},${(32 + Math.sin(a) * r).toFixed(1)}`; };
-  const pentagon = (cx: number, cy: number, r: number, turn: number) =>
-    Array.from({ length: 5 }, (_, i) => { const a = ((turn + i * 72) * Math.PI) / 180; return `${(cx + Math.cos(a) * r).toFixed(1)},${(cy + Math.sin(a) * r).toFixed(1)}`; }).join(' ');
-  const spokes = Array.from({ length: 5 }, (_, i) => {
-    const deg = -90 + i * 72, a = (deg * Math.PI) / 180;
-    // A seam from each corner of the middle patch out to a patch on the edge of the ball.
-    return `<line x1="${at(deg, 10).split(',')[0]}" y1="${at(deg, 10).split(',')[1]}" x2="${at(deg, 21).split(',')[0]}" y2="${at(deg, 21).split(',')[1]}"/>`
-      + `<polygon points="${pentagon(32 + Math.cos(a) * 29, 32 + Math.sin(a) * 29, 9.5, deg + 180)}"/>`;
-  }).join('');
-  return `<svg class="title-ball" viewBox="0 0 64 64" aria-hidden="true">
-    <defs><clipPath id="title-ball-clip"><circle cx="32" cy="32" r="29"/></clipPath></defs>
-    <circle cx="32" cy="32" r="30" fill="#f4f7f2" stroke="#10151c" stroke-width="2.5"/>
-    <g clip-path="url(#title-ball-clip)" fill="#10151c" stroke="#10151c" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
-      <polygon points="${pentagon(32, 32, 10, -90)}"/>${spokes}
-    </g>
-  </svg>`;
-}
-
 /** Version and build date, filled in by the build (see vite.config.ts). */
 export const BUILD: string = typeof __BUILD__ === 'string' ? __BUILD__ : 'dev';
 
