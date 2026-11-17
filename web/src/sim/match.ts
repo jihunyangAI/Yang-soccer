@@ -47,6 +47,8 @@ export interface MatchConfig {
   decider?: boolean;
   /** Squads to use instead of the clubs' built-in ones (club development mode). */
   rosters?: Partial<Record<Team, RosterPlayer[]>>;
+  /** Teams whose roster is already in order: its first eleven start, slot by slot (a hand-picked eleven). */
+  lineupGiven?: Team[];
   /** Optional per-team AI level override (tests, demo). */
   levels?: Partial<Record<Team, Difficulty>>;
   seed: number;
@@ -170,7 +172,10 @@ export class Match {
     let id = 0;
     for (const team of ['home', 'away'] as const) {
       const formation = FORMATIONS[team === 'home' ? c.homeFormation : c.awayFormation] ?? FORMATIONS['4-4-2'];
-      const { starters, bench } = pickLineup(c.rosters?.[team] ?? buildRoster(this.teams[team]), formation);
+      const roster = c.rosters?.[team] ?? buildRoster(this.teams[team]);
+      const { starters, bench } = c.lineupGiven?.includes(team) && roster.length >= formation.length
+        ? { starters: roster.slice(0, formation.length), bench: roster.slice(formation.length) }
+        : pickLineup(roster, formation);
       const shift = STAT_SHIFT[level(team)];
       formation.forEach((s, i) => {
         const p = createPlayer(id++, team, s.role, s.slot, 0, { speed: 0, dribble: 0, pass: 0, shoot: 0, defense: 0, stamina: 0 });

@@ -786,6 +786,13 @@ body.in-menu .caption { display: none; }
 .cr-btn { padding: 4px 10px; font-size: 12px; }
 .cr-btn:disabled { opacity: 0.35; cursor: default; }
 .cr-hi { color: #6ee07a; }
+.cr-warn { color: #ffb45e; font-weight: 700; }
+.cr-acts { white-space: nowrap; }
+.cr-acts .cr-btn { margin-left: 3px; }
+.cr-btn.cr-on { background: var(--accent); color: #111; border-color: var(--accent); text-shadow: none; }
+.cr-btn.cr-go:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.cr-moving td { background: rgba(255, 225, 77, 0.22); }
+.cr-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
 .cr-dim { opacity: 0.5; }
 
 /* ---------- cup mode ---------- */

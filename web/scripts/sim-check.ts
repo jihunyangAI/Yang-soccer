@@ -511,6 +511,90 @@ type Internals = { foul(t: Player, v: Player, fromBehind: boolean): void };
     `start ok=${startOk} match ok=${matchOk} transfers=${refused}/${bought}/${sold}/${floor} young players improved ${grew}/${young.length}, best XI ${start.rating}→${C.squadRating(c)}, money ${start.money}→${c.money}, retired ${retired}, history ${c.history.map((h) => `${h.division}부 ${h.position}위`).join(', ')}`);
 }
 
+// Club development: an eleven picked by hand is the one that plays; contracts run out; training steers growth.
+{
+  const C = await import('../src/sim/career');
+  const L = await import('../src/sim/league');
+  const { playerOverall } = await import('../src/sim/roster');
+  const mk = () => C.createCareer({ team: 22, legs: 1, seed: 99, minutes: 5, difficulty: 'normal', offside: true, assist: false });
+  const c = mk();
+  const first = C.lineup(c);
+  const auto = !c.lineup && first.starters.length === 11 && first.starters[0].cat === 'GK';
+  // A reserve for a starter, two starters swapping places, and what is not allowed.
+  const out = first.starters[9], sub = first.bench.find((p) => p.cat !== 'GK')!, gk2 = first.bench.find((p) => p.cat === 'GK')!;
+  const swapped = C.swap(c, out.id, sub.id) && C.lineup(c).starters[9] === sub && C.lineup(c).bench.includes(out);
+  const a = C.lineup(c).starters[2], b = C.lineup(c).starters[7];
+  const moved = C.swap(c, a.id, b.id) && C.lineup(c).starters[2] === b && C.lineup(c).starters[7] === a;
+  const blocked = !C.swap(c, C.lineup(c).starters[0].id, sub.id) && !C.swap(c, gk2.id, a.id) && !C.swap(c, out.id, first.bench.find((p) => p !== sub && p !== out && p.cat !== 'GK')!.id);
+  const keeper = C.swap(c, C.lineup(c).starters[0].id, gk2.id) && C.lineup(c).starters[0] === gk2;
+  // The match fields exactly that eleven, slot by slot.
+  const eleven = C.lineup(c).starters.map((p) => p.name);
+  const m = new Match({ seed: 4, humans: [], home: TEAMS[22], away: TEAMS[23], rosters: { home: C.matchSquad(c) }, lineupGiven: ['home'] });
+  const fielded = m.players.filter((p) => p.team === 'home').map((p) => p.name);
+  const plays = eleven.every((n, i) => fielded[i] === n) && m.squads.home.bench.length === 5 && m.squads.home.bench.some((p) => p.cat === 'GK');
+  // A change of formation keeps the same eleven; a sold starter is replaced; automatic picks the best again.
+  const before = new Set(C.lineup(c).starters.map((p) => p.id));
+  c.league.formation = '3-5-2';
+  const kept = C.lineup(c).starters.every((p) => before.has(p.id)) && C.lineup(c).starters[0].cat === 'GK';
+  c.squad = c.squad.filter((p) => p !== sub);
+  const repaired = C.lineup(c).starters.length === 11 && !C.lineup(c).starters.includes(sub) && new Set(C.lineup(c).starters).size === 11;
+  C.autoLineup(c);
+  const back = !c.lineup;
+
+  // Contracts: wages are paid each round, a contract that runs out costs the player, renewing keeps him.
+  const d = mk();
+  const bill = C.wageBill(d);
+  const leaving = d.squad.filter((p) => p.contract === 1 && p.age < 33);
+  const keep = leaving[0], go = leaving[1];
+  d.money = 100;
+  const renewed = !!keep && C.renew(d, keep.id) && keep.contract === 3 && d.money < 100;
+  const capped = !!keep && C.renew(d, keep.id) && !C.renew(d, keep.id) && keep.contract === 5;
+  const m0 = d.money;
+  L.playRound(d.league, [1, 1], C.careerClub(d));
+  C.afterRound(d, true);
+  const paid = bill > 0.3 && bill < 2.5 && Math.abs(d.money - (m0 + 1.5 * (L.myFixture(d.league, 0)!.home ? 1.2 : 1) - bill)) < 0.26;
+  while (!L.isOver(d.league)) { L.playRound(d.league, null, C.careerClub(d)); C.afterRound(d, false); }
+  C.afterSeason(d, L.nextSeason(d.league, 5));
+  const left = !!go && !d.squad.includes(go) && d.squad.includes(keep) && d.squad.length >= 16 && d.news.some((n) => n.includes('계약 만료'));
+
+  // Training: the focus is what improves most; a one-to-one session gives a point, once a round, for money.
+  const gain = (focus: 'balance' | 'shoot') => {
+    const e = mk();
+    e.focus = focus;
+    const was = e.squad.map((p) => ({ p, shoot: p.stats.shoot, rest: p.stats.speed + p.stats.dribble + p.stats.pass + p.stats.defense }));
+    while (!L.isOver(e.league)) { L.playRound(e.league, [2, 1], C.careerClub(e)); C.afterRound(e, true); }
+    return { shoot: was.reduce((x, w) => x + w.p.stats.shoot - w.shoot, 0), rest: was.reduce((x, w) => x + w.p.stats.speed + w.p.stats.dribble + w.p.stats.pass + w.p.stats.defense - w.rest, 0) };
+  };
+  const even = gain('balance'), lean = gain('shoot');
+  const steered = lean.shoot > even.shoot * 1.4 && lean.rest < even.rest;
+  const t = mk();
+  t.focus = 'pass';
+  const pupil = t.squad.find((p) => p.cat === 'MF' && p.potential - playerOverall(p) > 2)!;
+  const full = t.squad.find((p) => p.potential - playerOverall(p) <= 0);
+  t.money = 50;
+  const pass0 = pupil.stats.pass;
+  const drilled = C.drill(t, pupil.id) !== null && pupil.stats.pass === pass0 + 1 && t.money < 50;
+  const once = C.drill(t, pupil.id) === null && (!full || C.drillBlock(t, full) !== null);
+  L.playRound(t.league, null, C.careerClub(t)); C.afterRound(t, false);
+  const again = C.drillBlock(t, pupil) === null || pupil.potential - playerOverall(pupil) <= 0;
+
+  // The economy still works with wages: three seasons of ordinary results do not bankrupt the club.
+  const z = mk();
+  let low = z.money;
+  for (let sN = 0; sN < 3; sN++) {
+    let k = 0;
+    while (!L.isOver(z.league)) { L.playRound(z.league, [[2, 1], [1, 1], [0, 1]][k++ % 3] as [number, number], C.careerClub(z)); C.afterRound(z, true); low = Math.min(low, z.money); }
+    for (const p of z.squad) if (p.contract <= 1 && !C.renewBlock(z, p)) C.renew(z, p.id);
+    C.afterSeason(z, L.nextSeason(z.league, 40 + sN));
+  }
+  const solvent = low > 5 && z.money > 25;
+  const old = JSON.parse(JSON.stringify(mk()));
+  for (const p of [...old.squad, ...old.market]) { delete p.contract; delete p.wage; }
+  check('career: a hand-picked eleven plays, contracts run out or are renewed, training steers growth',
+    auto && swapped && moved && blocked && keeper && plays && kept && repaired && back && renewed && capped && paid && left && steered && drilled && once && again && solvent,
+    `line-up auto=${auto} sub=${swapped} swap=${moved} refusals=${blocked} keeper=${keeper} fielded=${plays} formation=${kept} repaired=${repaired} reset=${back}; wages ${bill}억/round paid=${paid} renewed=${renewed}/${capped} left=${left}; focus shoot +${lean.shoot} vs +${even.shoot} (others +${lean.rest} vs +${even.rest}), drill=${drilled}/${once}/${again}; money over 3 seasons low ${low.toFixed(1)} end ${z.money.toFixed(1)}`);
+}
+
 // Automatic switching: without the ball, control settles on a player near it and does not flicker.
 {
   let near = 0, ticks = 0, switches = 0, seconds = 0;

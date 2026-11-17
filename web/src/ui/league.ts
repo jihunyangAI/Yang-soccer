@@ -69,7 +69,7 @@ export class LeagueScreen {
     return {
       home: me, away: opp, homeFormation: s.formation, awayFormation: opp.formation,
       seconds: s.minutes * 60, offside: s.offside, humans: ['home'], assist: s.assist ? ['home'] : [],
-      difficulty: s.difficulty, ...(squad ? { rosters: { home: squad } } : {}),
+      difficulty: s.difficulty, ...(squad ? { rosters: { home: squad }, lineupGiven: ['home' as const] } : {}),
     };
   }
 
