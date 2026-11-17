@@ -16,6 +16,12 @@ export function buzz(ms: number): void {
  */
 export type TouchLayout = 'thumb' | 'classic';
 const LAYOUT_KEY = 'pitchline.touch.v1';
+const HAND_KEY = 'pitchline.touch.hand.v1';
+const POS_KEY = 'pitchline.touch.pos.v1';
+/** Which hand presses the buttons: 'left' mirrors the screen (buttons on the left, stick on the right). */
+export type TouchHand = 'right' | 'left';
+/** How far each button has been dragged from its place, per layout, in the button panel's own pixels. */
+type Offsets = Record<string, Record<string, [number, number]>>;
 /** How far past the stick's ring (in ring radii) the thumb has to go to sprint. */
 const SPRINT_PUSH = 1.3;
 
@@ -24,6 +30,10 @@ export interface TouchControls {
   setMode(mode: 'attack' | 'defend'): void;
   readonly layout: TouchLayout;
   setLayout(layout: TouchLayout): void;
+  readonly hand: TouchHand;
+  setHand(hand: TouchHand): void;
+  /** Start moving the buttons about by dragging them; `done` is called when the player has finished. */
+  edit(done: () => void): void;
 }
 
 /**
@@ -43,6 +53,11 @@ export function mountTouchControls(root: HTMLElement, input: Input): TouchContro
       <button class="btn btn-lob" data-action="lob">로빙</button>
       <button class="btn btn-sprint" data-action="sprint">달리기</button>
       <button class="btn btn-switch" data-action="switch">전환</button>
+    </div>
+    <div class="touch-edit" hidden>
+      <span>버튼을 끌어서 원하는 자리로 옮기세요</span>
+      <button type="button" data-e="reset">처음 위치로</button>
+      <button type="button" data-e="done">완료</button>
     </div>`;
   root.appendChild(layer);
 
@@ -54,6 +69,37 @@ export function mountTouchControls(root: HTMLElement, input: Input): TouchContro
   let layout: TouchLayout = 'thumb';
   try { if (localStorage.getItem(LAYOUT_KEY) === 'classic') layout = 'classic'; } catch { /* storage blocked */ }
   layer.classList.add(layout);
+  let hand: TouchHand = 'right';
+  try { if (localStorage.getItem(HAND_KEY) === 'left') hand = 'left'; } catch { /* storage blocked */ }
+  layer.classList.toggle('lefty', hand === 'left');
+  let offsets: Offsets = {};
+  try { offsets = JSON.parse(localStorage.getItem(POS_KEY) ?? '{}') as Offsets; } catch { offsets = {}; }
+  if (!offsets || typeof offsets !== 'object') offsets = {};
+  /** Put every button where the player dragged it in the current layout. */
+  const place = () => {
+    for (const btn of layer.querySelectorAll<HTMLButtonElement>('.btn')) {
+      const o = offsets[layout]?.[btn.dataset.action ?? ''];
+      btn.style.translate = Array.isArray(o) && o.every(Number.isFinite) ? `${o[0]}px ${o[1]}px` : '';
+    }
+  };
+  place();
+  let editing = false;
+  let editDone: (() => void) | null = null;
+  const editBar = layer.querySelector<HTMLDivElement>('.touch-edit')!;
+  const stopEdit = () => {
+    editing = false;
+    editBar.hidden = true;
+    layer.classList.remove('editing');
+    try { localStorage.setItem(POS_KEY, JSON.stringify(offsets)); } catch { /* ignore */ }
+    const done = editDone;
+    editDone = null;
+    done?.();
+  };
+  editBar.addEventListener('click', (e) => {
+    const act = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-e]')?.dataset.e;
+    if (act === 'reset') { delete offsets[layout]; place(); }
+    if (act === 'done') stopEdit();
+  });
   let joySprint = false;
   const setJoySprint = (on: boolean) => {
     if (on === joySprint) return;
@@ -99,9 +145,30 @@ export function mountTouchControls(root: HTMLElement, input: Input): TouchContro
 
   for (const btn of layer.querySelectorAll<HTMLButtonElement>('.btn')) {
     const action = btn.dataset.action as Action;
+    // While the buttons are being arranged, a touch drags the button instead of pressing it.
+    let drag: { id: number; x: number; y: number; ox: number; oy: number } | null = null;
+    btn.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const scale = Number(layer.style.getPropertyValue('--btn-scale')) || 1;
+      // The panel is scaled to the screen, and mirrored for the left hand.
+      const dx = ((e.clientX - drag.x) / scale) * (hand === 'left' ? -1 : 1), dy = (e.clientY - drag.y) / scale;
+      const lim = (v: number) => Math.max(-420, Math.min(420, Math.round(v)));
+      (offsets[layout] ??= {})[action] = [lim(drag.ox + dx), lim(drag.oy + dy)];
+      place();
+    });
+    const drop = (e: PointerEvent) => { if (drag && e.pointerId === drag.id) { drag = null; btn.classList.remove('pressed'); } };
+    btn.addEventListener('pointerup', drop);
+    btn.addEventListener('pointercancel', drop);
     btn.addEventListener('pointerdown', (e) => {
       show();
       btn.setPointerCapture(e.pointerId);
+      if (editing) {
+        const o = offsets[layout]?.[action] ?? [0, 0];
+        drag = { id: e.pointerId, x: e.clientX, y: e.clientY, ox: o[0], oy: o[1] };
+        btn.classList.add('pressed');
+        e.preventDefault();
+        return;
+      }
       btn.classList.add('pressed');
       input.touchPress(action);
       buzz(10);
@@ -138,7 +205,20 @@ export function mountTouchControls(root: HTMLElement, input: Input): TouchContro
       layer.classList.remove(layout);
       layout = next;
       layer.classList.add(layout);
+      place();
       try { localStorage.setItem(LAYOUT_KEY, next); } catch { /* ignore */ }
+    },
+    get hand() { return hand; },
+    setHand(next) {
+      hand = next;
+      layer.classList.toggle('lefty', hand === 'left');
+      try { localStorage.setItem(HAND_KEY, next); } catch { /* ignore */ }
+    },
+    edit(done) {
+      editing = true;
+      editDone = done;
+      editBar.hidden = false;
+      layer.classList.add('editing');
     },
     setMode(mode) {
       if (mode === current) return;

@@ -534,6 +534,40 @@ body.touch-mode .help { display: none; }
 .touch.thumb .joy-base.sprint::after { border-color: var(--accent); border-style: solid; color: var(--accent); }
 .touch.thumb .joy-base.sprint .joy-knob { background: rgba(255, 225, 77, 0.75); }
 
+/* Left hand: the whole screen is mirrored — buttons on the left, the stick on the right. */
+.touch.lefty .joy-zone { left: auto; right: 0; }
+.touch.lefty .joy-base { left: calc(100% - 110px); }
+.touch.lefty .buttons {
+  right: auto; left: calc(env(safe-area-inset-left, 0px) + 16px);
+  transform-origin: bottom left;
+  transform: translateX(calc(100% * var(--btn-scale, 1))) scale(calc(-1 * var(--btn-scale, 1)), var(--btn-scale, 1));
+}
+.touch.lefty .btn { transform: scaleX(-1); }
+/* Arranging the buttons: they are dragged about, with a bar at the top to finish. */
+.touch.editing { z-index: 25; background: rgba(6, 12, 9, 0.45); pointer-events: auto; }
+.touch.editing .joy-zone { pointer-events: none; }
+.touch.editing .btn { border-style: dashed; border-color: var(--accent); }
+.touch.editing .btn-through, .touch.editing .btn-lob { display: block; }
+.touch-edit {
+  position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 10px); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+  pointer-events: auto; padding: 8px 12px; border-radius: 10px; max-width: 92vw;
+  background: rgba(12, 22, 16, 0.9); border: 1px solid var(--line); color: var(--ink); font: 700 13px var(--font);
+}
+.touch-edit[hidden] { display: none; }
+.touch-edit button {
+  font: 700 13px var(--font); padding: 7px 12px; border-radius: 6px; cursor: pointer;
+  color: var(--ink); background: rgba(255, 255, 255, 0.08); border: 1px solid var(--line);
+}
+.touch-edit button[data-e="done"] { color: #1d2330; background: var(--accent); border-color: var(--accent); }
+.pause-row { gap: 8px; }
+body.touch-mode .pause-row.touch-only { display: flex; }
+.pause-card .pause-row button { flex: 1 1 0; font-size: 12px; padding: 9px 4px; }
+@media (max-height: 460px) {
+  .pause-card { padding: 12px 18px; gap: 6px; }
+  .pause-card button { padding: 8px; font-size: 14px; }
+}
+
 @media (orientation: portrait) {
   body.touch-mode .rotate-hint {
     display: block; position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 64px);

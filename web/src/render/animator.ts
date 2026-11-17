@@ -67,6 +67,9 @@ export class Animator {
   private headPitch = 0;
   private touchPrev = 0;
   private touchAt = new THREE.Vector3(0.35, 0.1, 0);
+  /** Receiving: where the foot is going out to meet a ball on its way in, and which foot. */
+  private reachAt = new THREE.Vector3(0.45, 0.1, 0);
+  private reachFoot: -1 | 1 = 1;
   private kickAt = new THREE.Vector3(0.42, 0, 0.08);
   private diveSign = 1;
   private tiltX = 0;
@@ -230,12 +233,22 @@ export class Animator {
       if (wJump > 0) f.pos.y += Math.max(0, jumpJ * 0.2 - 0.07) * wJump;
     }
 
+    // The ball at his feet is solid: a step that would land in it is cut short behind it. This is
+    // what happens as he slows to a stop or cuts across, when the ball sits where the stride goes.
+    if (owner && by < 0.3 && !kicking && bx > 0.05) {
+      const lim = bx - BALL_R - 0.09;
+      for (const f of this.feet) {
+        const beside = 1 - S(Math.abs(f.pos.z - bz), 0.1, 0.2);
+        if (beside > 0 && f.pos.x > lim && f.pos.x < bx + 0.22 && f.pos.y < 0.28) f.pos.x = lerp(f.pos.x, lim, beside);
+      }
+    }
+
     /** 0…1: how far the hips sink to let a foot reach a ball that is a stretch away. */
     let lunge = 0;
     if (wSole > 0) {
       // The ball is drawn larger and lifted so it sits on the grass: aim for the top of what is seen.
       const f = this.feet[p.touchFoot < 0 ? 0 : 1];
-      V.set(clamp(bx - 0.07, 0.12, 0.5), by + (BALL_R - 0.11) + BALL_R + 0.072, clamp(bz, -0.3, 0.3));
+      V.set(clamp(bx - 0.07, 0.12, 0.5), by + (BALL_R - 0.11) + BALL_R + 0.108, clamp(bz, -0.3, 0.3)); // high enough that the sole rests on it, not in it
       f.pos.lerp(V, wSole);
       f.pitch = lerp(f.pitch, -0.1, wSole);
       f.toeOut = lerp(f.toeOut, 0.12, wSole);
@@ -271,6 +284,34 @@ export class Animator {
           f.pitch = lerp(f.pitch, 0.05, wA);
         }
       }
+    }
+
+    // Receiving: a ball about to arrive at the feet is met by a foot that is already on its way
+    // there, instead of the leg only starting to move once the ball has been taken.
+    let arriving = false;
+    if (hasBall && !owner && extra.ball && extra.ball.ownerId === -1 && !kicking && !gk
+      && by < 0.45 && bDist < 2.6 && p.touchAnim <= 0 && p.stumble <= 0 && p.tackleAnim <= 0) {
+      // A ball coming at him is taken as it gets within a stride (see canControl); one coming
+      // across or from behind, where it passes closest to the spot a foot can comfortably reach.
+      const px = bx - 0.48, v2 = brx * brx + brz * brz;
+      const t = brx < -3 && bx > 0.66 ? (bx - 0.66) / -brx : v2 > 4 ? -(px * brx + bz * brz) / v2 : -1;
+      if (t > 0 && t < 0.17) {
+        const mx = bx + brx * t, mz = bz + brz * t;
+        if (mx > 0.12 && mx < 0.86 && Math.abs(mz) < 0.5) {
+          arriving = true;
+          this.reachFoot = mz < -0.05 ? -1 : 1;
+          meet(this.reachAt, clamp(mx, 0.2, 0.78), clamp(mz, -0.42, 0.42));
+        }
+      }
+    }
+    const wReach = this.ease('reach', arriving, dt, 26, 30);
+    if (wReach > 0 && wTouch < 1) {
+      const f = this.feet[this.reachFoot < 0 ? 0 : 1];
+      V.copy(this.reachAt);
+      lunge = Math.max(lunge, wReach * S(Math.hypot(V.x, V.z - this.reachFoot * LEG.hipHalf), 0.26, 0.5));
+      f.pos.lerp(V, wReach);
+      f.toeOut = lerp(f.toeOut, 0.55, wReach);
+      f.pitch = lerp(f.pitch, 0.05, wReach);
     }
 
     // Dribble touch: the inside of the foot meets the ball, then pushes through.
