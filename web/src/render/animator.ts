@@ -192,7 +192,7 @@ export class Animator {
     const tt = p.touchAnim > 0 ? clamp(1 - p.touchAnim / 0.22, 0, 1) : 1;
     const wTouch = this.ease('touch', p.touchAnim > 0 && !kicking && tt < 0.55, dt, 45, 14);
     // Standing on the ball: one sole rests on top of it while the player waits.
-    const wSole = this.ease('sole', owner && !kicking && !extra.hold && sp < 0.9 && bDist < 0.8 && by < 0.2 && bx > 0.1, dt, 7, 16);
+    const wSole = this.ease('sole', owner && !kicking && !extra.hold && sp < 0.9 && bDist < 0.8 && by < 0.2 && bx > 0.1 && bx < 0.52, dt, 7, 16);
 
     // ---- gait ----
     const stride = 1.6 + sp * 0.35;                           // metres per full cycle (matches the sim)
@@ -249,7 +249,10 @@ export class Animator {
       // The ball is drawn larger and lifted so it sits on the grass: aim for the top of what is seen.
       const f = this.feet[p.touchFoot < 0 ? 0 : 1];
       V.set(clamp(bx - 0.07, 0.12, 0.5), by + (BALL_R - 0.11) + BALL_R + 0.108, clamp(bz, -0.3, 0.3)); // high enough that the sole rests on it, not in it
-      f.pos.lerp(V, wSole);
+      // The foot comes up first and goes forward after (and comes back the same way), so on
+      // its way to the top of the ball it goes over it rather than through it.
+      const up = 1 - (1 - wSole) * (1 - wSole);
+      f.pos.set(lerp(f.pos.x, V.x, wSole * wSole), lerp(f.pos.y, V.y, up), lerp(f.pos.z, V.z, wSole));
       f.pitch = lerp(f.pitch, -0.1, wSole);
       f.toeOut = lerp(f.toeOut, 0.12, wSole);
     }

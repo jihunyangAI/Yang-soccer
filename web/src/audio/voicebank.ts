@@ -35,6 +35,12 @@ export class VoiceBank {
       .catch(() => { this.packs.set(i, 'failed'); });
   }
 
+  /** Start fetching whichever packs hold these clips, so the first call of a name does not wait. */
+  prefetchKeys(keys: string[]): void {
+    if (!this.index) return;
+    for (const k of keys) { const at = this.index.clips[k]; if (at) this.loadPack(at[0]); }
+  }
+
   /** Start fetching a pack by name (the stand-in names: family names, shirt numbers, "home side"). */
   prefetchPack(name: string): void {
     const i = this.index ? this.index.packs.indexOf(name) : -1;

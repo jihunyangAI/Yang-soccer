@@ -333,6 +333,8 @@ export class Commentary {
       this.match = m; this.lastShot = -99; this.quiet = 0; this.lastKick = m.ball.kickId;
       this.hush();
       this.bank.prefetch([m.teams.home.id, m.teams.away.id]);
+      // Players who are not in their club's built-in squad (signed or come through in club development mode).
+      this.bank.prefetchKeys(m.players.map((p) => KEY.player(p.name)));
       // The stand-in names are only fetched for a match that has someone to use them on.
       if (m.players.some((p) => !this.bank.has(KEY.player(p.name))) || !this.bank.has(KEY.teamGa(m.teams.home.name)) || !this.bank.has(KEY.teamGa(m.teams.away.name))) {
         this.bank.prefetchPack('extra');

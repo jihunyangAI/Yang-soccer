@@ -199,14 +199,28 @@ const GOAL_TAKES = [
   { id: 'f', note: '골 + 선수 이름', text: '고오오오올! 이브라힘 로시! 이브라힘 로시의 골입니다!' },
 ];
 
-async function goal(key) {
+// A second batch, going the other way: the first batch asked for one long drawn-out cry, which
+// the voice could not carry. These are short, hard shouts, the way Korean casters usually call a goal.
+const GOAL2_SCENE = `방금 골이 들어갔다! 만원 관중의 함성 속에서 캐스터가 벌떡 일어나 소리친다.
+길게 끌지 않는다. 짧고 강하게, 터뜨리듯이 외친다. 첫마디부터 최대 음량이고, 문장 끝까지 힘이 빠지지 않는다.
+한국 지상파 축구 중계에서 골이 터진 순간의 그 목소리다. 흥분해서 목소리가 갈라질 정도로, 진짜 기뻐서 지르는 소리다.`;
+const GOAL2_TAKES = [
+  { id: 'g', note: '짧게 두 번', text: '골! 골입니다!' },
+  { id: 'h', note: '세 번 터뜨림', text: '골! 골! 골! 들어갔습니다!' },
+  { id: 'i', note: '들어갔습니다 먼저', text: '들어갔습니다! 골! 골입니다!' },
+  { id: 'j', note: '슛부터 이어서', text: '슛! 골! 골이에요! 들어갔습니다!' },
+  { id: 'k', note: '감탄으로 시작', text: '아! 들어갔습니다! 골! 골!' },
+  { id: 'l', note: '약간만 늘임', text: '고올! 골입니다! 들어갔어요!' },
+];
+
+async function goal(key, TAKES = GOAL_TAKES, SCENE = GOAL_SCENE, VOICES = ['cedar', 'ash'], page = 'goal.html') {
   const out = join(web, 'voice-test');
   mkdirSync(out, { recursive: true });
   const rows = [];
   let failed = 0;
-  for (const t of GOAL_TAKES) {
+  for (const t of TAKES) {
     const cells = [];
-    for (const voice of ['cedar', 'ash']) {
+    for (const voice of VOICES) {
       const name = `goal-${t.id}-${voice}.mp3`;
       try {
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -214,7 +228,7 @@ async function goal(key) {
           headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: 'gpt-audio-1.5', modalities: ['text', 'audio'], audio: { voice, format: 'mp3' },
-            messages: [{ role: 'system', content: ACT.caster }, { role: 'user', content: `[상황] ${GOAL_SCENE}\n[대사] ${t.text}` }],
+            messages: [{ role: 'system', content: ACT.caster }, { role: 'user', content: `[상황] ${SCENE}\n[대사] ${t.text}` }],
           }),
         });
         if (!res.ok) throw new Error(`${res.status} ${(await res.text()).replace(/sk-[A-Za-z0-9_-]+/g, 'sk-***').slice(0, 200)}`);
@@ -232,15 +246,15 @@ async function goal(key) {
     }
     rows.push(`<tr><th>${t.id.toUpperCase()}<small>${t.note}</small></th><td class="t">${t.text}</td>${cells.join('')}</tr>`);
   }
-  writeFileSync(join(out, 'goal.html'), `<!doctype html><html lang="ko"><meta charset="utf-8"><title>골 외침 시험</title>
+  writeFileSync(join(out, page), `<!doctype html><html lang="ko"><meta charset="utf-8"><title>골 외침 시험</title>
 <style>body{font:15px "Malgun Gothic",system-ui,sans-serif;background:#14321d;color:#f4f7f2;margin:24px}h1{font-size:22px}
 table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ffffff2e;padding:10px 8px;text-align:left;vertical-align:middle}
 th small{display:block;font-weight:400;opacity:.7}td.t{max-width:36ch;line-height:1.5}td b{display:block;font-size:12px;opacity:.75;margin-bottom:4px}audio{width:240px;height:34px}
 p{opacity:.8;line-height:1.6}</style>
-<h1>골 외침만 다시 — 6가지 × 목소리 2개</h1>
-<p>골 외침을 쓰는 방법과 연기 지시를 바꿔 12개를 만들었습니다. 마음에 드는 것의 <b>기호(A~F)와 목소리</b>를 알려 주세요. 여러 개를 골라도 됩니다(게임에서 번갈아 나옵니다).</p>
+<h1>골 외침 시험 — ${TAKES.length}가지 × 목소리 ${VOICES.length}개</h1>
+<p>골 외침을 쓰는 방법과 연기 지시를 바꿔 만들었습니다. 마음에 드는 것의 <b>기호와 목소리</b>를 알려 주세요. 여러 개를 골라도 됩니다(게임에서 번갈아 나옵니다).</p>
 <table>${rows.join('')}</table></html>`);
-  console.log(`${GOAL_TAKES.length * 2 - failed} clips, ${failed} failed`);
+  console.log(`${TAKES.length * VOICES.length - failed} clips, ${failed} failed`);
   return failed === 0;
 }
 
@@ -251,5 +265,6 @@ const mode = process.argv[2] ?? 'test';
 if (mode === 'test') process.exit((await test(found.key)) ? 0 : 1);
 if (mode === 'test2') process.exit((await test2(found.key)) ? 0 : 1);
 if (mode === 'goal') process.exit((await goal(found.key)) ? 0 : 1);
+if (mode === 'goal2') process.exit((await goal(found.key, GOAL2_TAKES, GOAL2_SCENE, ['ash', 'verse'], 'goal2.html')) ? 0 : 1);
 console.error(`unknown mode: ${mode}`);
 process.exit(1);

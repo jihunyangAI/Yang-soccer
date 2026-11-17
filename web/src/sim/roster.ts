@@ -36,6 +36,21 @@ export function slotCategory(pos: string): Category {
   return 'MF'; // DM, CM, LM, RM, AM, LWB, RWB
 }
 
+/**
+ * The Korean names new players can have (club development mode). There are far too many
+ * possible Korean names to record them all for the commentary, so newcomers draw from this
+ * fixed list, every name of which has a recording.
+ */
+export const KOREAN_POOL: readonly string[] = (() => {
+  const rng = createRng(0x4b4f5245);
+  const out = new Set<string>();
+  while (out.size < 160) {
+    const a = SYLLABLES[(rng() * SYLLABLES.length) | 0], b = SYLLABLES[(rng() * SYLLABLES.length) | 0];
+    if (a !== b) out.add(SURNAMES[(rng() * SURNAMES.length) | 0] + a + b);
+  }
+  return [...out];
+})();
+
 const EYES = [0x4a2f1c, 0x4a2f1c, 0x2e1c10, 0x2e1c10, 0x3d6fa8, 0x4f7a43, 0x6b4a2a];
 
 /** An invented name and face for a new player (club development mode); `used` keeps names unique. */
@@ -43,12 +58,7 @@ export function personFor(rng: Rng, used: Set<string>): { name: string; look: Lo
   const pick = <T>(arr: readonly T[]) => arr[(rng() * arr.length) | 0];
   let name = '';
   for (let tries = 0; tries < 50; tries++) {
-    if (rng() < 0.2) {
-      const a = pick(SYLLABLES);
-      let b = pick(SYLLABLES);
-      if (b === a) b = SYLLABLES[(SYLLABLES.indexOf(a) + 1) % SYLLABLES.length];
-      name = pick(SURNAMES) + a + b;
-    } else name = `${pick(FIRST)} ${pick(LAST)}`;
+    name = rng() < 0.2 ? pick(KOREAN_POOL) : `${pick(FIRST)} ${pick(LAST)}`;
     if (!used.has(name)) break;
   }
   used.add(name);
