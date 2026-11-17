@@ -27,6 +27,11 @@ export class Sound {
     window.addEventListener('keydown', unlock);
   }
 
+  /** The game's audio output once the player has unlocked it; recorded commentary plays through it too. */
+  output(): { ctx: AudioContext; node: AudioNode } | null {
+    return this.ctx && this.ctx.state === 'running' ? { ctx: this.ctx, node: this.master } : null;
+  }
+
   setEnabled(on: boolean): void {
     this.enabled = on;
     try { localStorage.setItem(STORE_KEY, on ? 'on' : 'off'); } catch { /* ignore */ }

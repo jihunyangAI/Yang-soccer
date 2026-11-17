@@ -63,7 +63,7 @@ export function helpHtml(touch: boolean): string {
     </div>
     <div class="hp-block">
       <div class="card-label">해설 음성 확인</div>
-      <div>해설 목소리가 들리지 않으면 아래 버튼을 눌러 보세요. 이 기기에서 음성이 되는지 바로 알려 드리고, 되는 기기라면 이후 경기에서도 들리게 됩니다.</div>
+      <div>해설 목소리가 들리지 않으면 아래 버튼을 눌러 보세요. 이 기기에서 해설 음성이 재생되는지 바로 알려 드립니다.</div>
       <div class="lg-actions"><button type="button" class="lg-ghost" data-act="help-voice">테스트 음성 듣기</button></div>
       <div class="ed-note" data-id="voice-note" role="status">${talkStatus()}</div>
     </div>
@@ -74,7 +74,7 @@ export function helpHtml(touch: boolean): string {
     </div>`;
 }
 
-interface TalkProbe { diagnostics: string; test(): Promise<string> }
+interface TalkProbe { diagnostics: string; silent: boolean; test(): Promise<string> }
 const talk = (): TalkProbe | undefined => (window as unknown as { __talk?: TalkProbe }).__talk;
 const talkStatus = (): string => talk()?.diagnostics ?? '';
 /** Speak a test line (must be called from a button press) and say what happened. */
@@ -103,10 +103,11 @@ const isApple = (): boolean => /iPhone|iPad|iPod/i.test(navigator.userAgent);
  * commentary would be captions only. Empty when speech is available.
  */
 export function noVoiceNotice(): string {
-  if (typeof speechSynthesis !== 'undefined') return '';
+  // With recorded commentary this only happens if the recordings failed to load as well.
+  if (!talk()?.silent) return '';
   return `
     <div class="novoice" role="note">
-      <span><b>이 화면에서는 해설 목소리가 나오지 않습니다.</b> 카카오톡 같은 앱 안에서 연 화면이라 그렇습니다. ${isApple() ? '사파리' : '크롬'}에서 열면 목소리까지 들립니다. (자막과 효과음은 여기서도 나옵니다)</span>
+      <span><b>이 화면에서는 해설 목소리가 나오지 않습니다.</b> 녹음된 해설을 불러오지 못했고, 앱 안에서 연 화면이라 브라우저 음성도 없습니다. ${isApple() ? '사파리' : '크롬'}에서 열면 목소리까지 들립니다. (자막과 효과음은 여기서도 나옵니다)</span>
       <span class="novoice-actions">
         <button type="button" class="lg-ghost" data-act="open-ext">${isApple() ? '사파리' : '크롬'}에서 열기</button>
         <button type="button" class="lg-ghost" data-act="copy-link">주소 복사</button>

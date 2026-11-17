@@ -6,3 +6,5 @@ dist/
 .env.*
 .omc/
 *.log
+voice-test/
+voice-src/
