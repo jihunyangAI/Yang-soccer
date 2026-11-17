@@ -1,6 +1,6 @@
 import type { Difficulty, MatchConfig } from '../sim/match';
 import { DIVISION_NAME, FORMATION_NAMES, overall, TEAMS } from '../sim/team';
-import { copyText, deviceReport, helpHtml, testVoice } from './about';
+import { ballIcon, copyText, deviceReport, helpHtml, noVoiceNotice, openExternal, testVoice, TITLE } from './about';
 import { CareerScreen } from './career';
 import { crestSvg } from './crest';
 import { CupScreen } from './cup';
@@ -158,10 +158,11 @@ export class Menu {
     this.el.innerHTML = `
       <div class="menu-card">
         <div class="menu-head">
-          <h1>PITCHLINE</h1>
+          <h1>${ballIcon()}${TITLE}</h1>
           <span class="menu-sub">11대11 · ${TEAMS.length}개 클럽 · 베타</span>
           <button type="button" class="lg-ghost menu-help" data-act="help">조작법</button>
         </div>
+        ${noVoiceNotice()}
         ${two ? `<div class="seg mode" role="group" aria-label="인원">
           <button type="button" data-act="mode" data-v="1" class="${s.mode === 1 ? 'on' : ''}">1인 · AI 상대</button>
           <button type="button" data-act="mode" data-v="2" class="${s.mode === 2 ? 'on' : ''}">2인 대전 (키보드)</button>
@@ -274,6 +275,13 @@ export class Menu {
       case 'career': this.screen = 'career'; break;
       case 'help': this.screen = 'help'; break;
       case 'help-exit': this.screen = 'quick'; break;
+      case 'open-ext': openExternal(); return;
+      case 'copy-link':
+        void copyText(location.href).then((ok) => {
+          const n = this.el.querySelector('[data-id="link-note"]');
+          if (n) n.textContent = ok ? '주소를 복사했습니다. 크롬이나 사파리 주소창에 붙여 넣어 주세요.' : location.href;
+        });
+        return;
       case 'help-voice': {
         const note = this.el.querySelector('[data-id="voice-note"]');
         if (note) note.textContent = '확인하는 중…';

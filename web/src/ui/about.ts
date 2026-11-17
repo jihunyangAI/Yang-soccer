@@ -1,3 +1,26 @@
+/** The game's name as shown to players. (Saved games keep their older `pitchline.*` storage keys.) */
+export const TITLE = 'YangSoccer';
+
+/** A football for the title: a white ball with the classic black pentagons. */
+export function ballIcon(): string {
+  const at = (deg: number, r: number) => { const a = (deg * Math.PI) / 180; return `${(32 + Math.cos(a) * r).toFixed(1)},${(32 + Math.sin(a) * r).toFixed(1)}`; };
+  const pentagon = (cx: number, cy: number, r: number, turn: number) =>
+    Array.from({ length: 5 }, (_, i) => { const a = ((turn + i * 72) * Math.PI) / 180; return `${(cx + Math.cos(a) * r).toFixed(1)},${(cy + Math.sin(a) * r).toFixed(1)}`; }).join(' ');
+  const spokes = Array.from({ length: 5 }, (_, i) => {
+    const deg = -90 + i * 72, a = (deg * Math.PI) / 180;
+    // A seam from each corner of the middle patch out to a patch on the edge of the ball.
+    return `<line x1="${at(deg, 10).split(',')[0]}" y1="${at(deg, 10).split(',')[1]}" x2="${at(deg, 21).split(',')[0]}" y2="${at(deg, 21).split(',')[1]}"/>`
+      + `<polygon points="${pentagon(32 + Math.cos(a) * 29, 32 + Math.sin(a) * 29, 9.5, deg + 180)}"/>`;
+  }).join('');
+  return `<svg class="title-ball" viewBox="0 0 64 64" aria-hidden="true">
+    <defs><clipPath id="title-ball-clip"><circle cx="32" cy="32" r="29"/></clipPath></defs>
+    <circle cx="32" cy="32" r="30" fill="#f4f7f2" stroke="#10151c" stroke-width="2.5"/>
+    <g clip-path="url(#title-ball-clip)" fill="#10151c" stroke="#10151c" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
+      <polygon points="${pentagon(32, 32, 10, -90)}"/>${spokes}
+    </g>
+  </svg>`;
+}
+
 /** Version and build date, filled in by the build (see vite.config.ts). */
 export const BUILD: string = typeof __BUILD__ === 'string' ? __BUILD__ : 'dev';
 
@@ -28,7 +51,7 @@ export function helpHtml(touch: boolean): string {
     </div>`;
   return `
     <div class="lg-head">
-      <div><h2>조작법</h2><span class="menu-sub">PITCHLINE ${BUILD}</span></div>
+      <div><h2>조작법</h2><span class="menu-sub">${TITLE} ${BUILD}</span></div>
       <button type="button" class="lg-ghost" data-act="help-exit">메인 메뉴</button>
     </div>
     ${touch ? touchHelp + keys : keys + touchHelp}
@@ -63,13 +86,43 @@ export function deviceReport(touch: boolean): string {
   const voice = typeof speechSynthesis === 'undefined' ? '없음'
     : speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('ko')).map((v) => v.name).join(', ') || '한국어 음성 없음';
   return [
-    `PITCHLINE ${BUILD}`,
+    `${TITLE} ${BUILD}`,
     `화면 ${window.innerWidth}×${window.innerHeight} (배율 ${window.devicePixelRatio}) · ${touch ? '터치' : '키보드/패드'}`,
     `브라우저 ${navigator.userAgent}`,
     `한국어 음성: ${voice}`,
     `해설: ${talkStatus() || '-'}`,
     `저장: 리그 ${has('pitchline.league.v1')} · 컵 ${has('pitchline.cup.v1')} · 육성 ${has('pitchline.career.v1')} · 에디터 ${has('pitchline.custom.v1')}`,
   ].join('\n');
+}
+
+const isApple = (): boolean => /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+/**
+ * A notice for browsers that cannot speak at all. Links opened inside a messenger (KakaoTalk
+ * and the like) run in the app's own small browser, which has no speech synthesis, so the
+ * commentary would be captions only. Empty when speech is available.
+ */
+export function noVoiceNotice(): string {
+  if (typeof speechSynthesis !== 'undefined') return '';
+  return `
+    <div class="novoice" role="note">
+      <span><b>이 화면에서는 해설 목소리가 나오지 않습니다.</b> 카카오톡 같은 앱 안에서 연 화면이라 그렇습니다. ${isApple() ? '사파리' : '크롬'}에서 열면 목소리까지 들립니다. (자막과 효과음은 여기서도 나옵니다)</span>
+      <span class="novoice-actions">
+        <button type="button" class="lg-ghost" data-act="open-ext">${isApple() ? '사파리' : '크롬'}에서 열기</button>
+        <button type="button" class="lg-ghost" data-act="copy-link">주소 복사</button>
+      </span>
+      <span class="ed-note" data-id="link-note" role="status"></span>
+    </div>`;
+}
+
+/** Hand this page to the phone's real browser, by the route the app it was opened in provides. */
+export function openExternal(): void {
+  const url = location.href, ua = navigator.userAgent;
+  if (/KAKAOTALK/i.test(ua)) { location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(url)}`; return; }
+  if (/Line\//i.test(ua)) { location.href = url + (url.includes('?') ? '&' : '?') + 'openExternalBrowser=1'; return; }
+  if (isApple()) { location.href = url.replace(/^https?:\/\//, 'x-safari-https://'); return; }
+  // Android: ask for Chrome by name; the fallback keeps the page where it is if Chrome is missing.
+  location.href = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end`;
 }
 
 /** Copy text for the player; false if the browser would not allow it. */

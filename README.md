@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚽ PITCHLINE
+# ⚽ YangSoccer
 
 ### 브라우저에서 바로 하는 11 대 11 축구 게임
 

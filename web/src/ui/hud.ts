@@ -62,7 +62,7 @@ export class Hud {
       <div class="skip-hint" data-id="skip" hidden>아무 버튼이나 누르면 건너뜁니다</div>
       <div class="gauge" data-id="gauge"><div class="gauge-fill" data-id="fill"></div><span data-id="glabel"></span></div>
       <div class="help" data-id="help">
-        <b data-id="helptitle">PITCHLINE</b>
+        <b data-id="helptitle">YangSoccer</b>
         <div data-id="help1">
           <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 · <kbd>Shift</kbd> 달리기 · <kbd>Space</kbd> 선수 전환</div>
           <div class="row-title">공격</div>
@@ -126,7 +126,7 @@ export class Hud {
     const two = m.isHuman('home') && m.isHuman('away');
     this.q('help1').hidden = two;
     this.q('help2').hidden = !two;
-    this.q('helptitle').textContent = two ? 'PITCHLINE · 2인 대전' : `PITCHLINE · ${m.teams.home.name} vs ${m.teams.away.name}`;
+    this.q('helptitle').textContent = two ? 'YangSoccer · 2인 대전' : `YangSoccer · ${m.teams.home.name} vs ${m.teams.away.name}`;
     this.q('result').hidden = true;
     this.bannerTime = 0;
     this.q('banner').className = 'banner';
