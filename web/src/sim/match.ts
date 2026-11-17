@@ -129,6 +129,8 @@ export class Match {
   private lastCtrl: Record<Team, number> = { home: -1, away: -1 };
   /** Seconds before control may switch by itself again (longer after the player switched by hand). */
   private switchLock: Record<Team, number> = { home: 0, away: 0 };
+  /** Seconds the stick has been at rest. */
+  private idle: Record<Team, number> = { home: 0, away: 0 };
   /** 'defend' when the opponent has the ball: pass = press, shoot = tackle. */
   readonly mode: Record<Team, 'attack' | 'defend'> = { home: 'attack', away: 'attack' };
   readonly rng: Rng;
@@ -857,20 +859,24 @@ export class Match {
         // further away. It only changes when someone is clearly better, so it does not flicker.
         const best = this.bestPlaced(team);
         const now = this.reach(human), then = this.reach(best);
-        if (best.id !== human.id && then < now - 2.5 && then < now * 0.78) {
+        if (best.id !== human.id && then < now - 1.6 && then < now * 0.84) {
           this.ctrl[team] = best.id;
-          this.switchLock[team] = 0.45;
+          this.switchLock[team] = 0.4;
         }
       }
       const c = this.players[this.ctrl[team]];
       let mx = a.mx, mz = a.mz, sprint = a.sprint;
-      // Switched to a new player (by button or because possession changed): until the stick
-      // moves he goes for the ball himself.
-      if (c.id !== this.lastCtrl[team]) { this.autoRun[team] = this.lastCtrl[team] >= 0; this.lastCtrl[team] = c.id; }
-      if (Math.hypot(a.mx, a.mz) > 0.2 || b.ownerId === c.id || !playing) this.autoRun[team] = false;
+      // Instinct: whenever the stick is at rest and he does not have the ball, the selected
+      // player goes for it himself — closing down an opponent, running onto a loose ball, or
+      // offering himself to a teammate. It starts at once after a switch, and a moment after
+      // the stick is let go otherwise; any push of the stick takes over again.
+      const stick = Math.hypot(a.mx, a.mz) > 0.2;
+      this.idle[team] = stick ? 0 : this.idle[team] + dt;
+      if (c.id !== this.lastCtrl[team]) { if (this.lastCtrl[team] >= 0 && !stick) this.idle[team] = 1; this.lastCtrl[team] = c.id; }
+      this.autoRun[team] = playing && !stick && b.ownerId !== c.id && this.idle[team] > 0.18;
       if (this.autoRun[team]) {
         const theirs = !!owner && owner.team !== team;
-        const d = aiOffBall(this, c, theirs ? 'press' : 'receive', dt);
+        const d = aiOffBall(this, c, theirs ? 'press' : mine ? 'support' : 'receive', dt);
         if (d.type === 'move' || d.type === 'tackle') { mx = d.mx; mz = d.mz; sprint = d.type === 'move' ? d.sprint : true; }
       }
       // Assist: pushing the stick all the way also sprints.
