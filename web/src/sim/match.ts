@@ -497,8 +497,11 @@ export class Match {
     // Firm passes: arrive at 10–12 m/s so defenders have little time to intercept,
     // but softer when the target is near a line so the ball does not run out.
     const nearLine = Math.abs(to.z) > PITCH.halfWidth - 4 || Math.abs(to.x) > PITCH.halfLength - 5;
-    const vEnd = nearLine ? 4.5 : kind === 'through' ? 12 : 10;
-    const v0 = clamp(Math.sqrt(vEnd * vEnd + 2 * 1.9 * d), 14, 31);
+    // A through ball is driven: it has to beat the defenders to the space, and the runner meets it at speed.
+    const through = kind === 'through';
+    // (Not so hard that the runner cannot take it: a ball arriving much faster than this bounces off him.)
+    const vEnd = nearLine ? (through ? 6.5 : 4.5) : through ? 14 : 10;
+    const v0 = clamp(Math.sqrt(vEnd * vEnd + 2 * 1.9 * d), through ? 18 : 14, through ? 34 : 31);
     return { vx: (dx / d) * v0, vy: 0, vz: (dz / d) * v0 };
   }
 
@@ -506,8 +509,8 @@ export class Match {
     const dir = this.dir(q.team);
     if (kind === 'through') {
       return {
-        x: clamp(q.pos.x + dir * 6 + q.vel.x * 0.5, -PITCH.halfLength + 2, PITCH.halfLength - 2),
-        z: clamp(q.pos.z + q.vel.z * 0.5, -PITCH.halfWidth + 2, PITCH.halfWidth - 2),
+        x: clamp(q.pos.x + dir * 7 + q.vel.x * 0.55, -PITCH.halfLength + 2, PITCH.halfLength - 2),
+        z: clamp(q.pos.z + q.vel.z * 0.55, -PITCH.halfWidth + 2, PITCH.halfWidth - 2),
       };
     }
     const lead = kind === 'lob' ? 0.6 : 0.4;
@@ -584,7 +587,7 @@ export class Match {
     if (kind === 'lob') {
       strike(p, this.ball, dir.x * (10 + power * 17), 5 + power * 7, dir.z * (10 + power * 17), 0.05, 0, this.rng);
     } else {
-      const sp = kind === 'through' ? 25 : 18;
+      const sp = kind === 'through' ? 31 : 18;
       strike(p, this.ball, dir.x * sp, 0, dir.z * sp, 0.03, 0, this.rng);
     }
   }
