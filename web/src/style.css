@@ -695,6 +695,30 @@ body.touch-mode .touch-only { display: block; }
 @media (prefers-reduced-motion: reduce) { .caption.shout { animation: none; } }
 body.in-menu .caption { display: none; }
 /*
+ * On every screen, what pops up over the play is see-through with no box behind it, so the
+ * players underneath stay visible: match messages (throw-in, tackle won, foul…), the goal and
+ * card notices, and the commentary caption. A dark outline keeps the text readable.
+ */
+.banner { top: 24%; text-shadow: 0 2px 3px #000, 0 0 8px rgba(0, 0, 0, 0.85); }
+.banner.show { opacity: 0.62; }
+.banner.small { font-size: clamp(17px, 2vw, 22px); background: none; padding: 0; }
+.banner.mid { font-size: clamp(24px, 3.2vw, 36px); }
+.banner.big { font-size: clamp(40px, 6.5vw, 76px); }
+.banner-sub { background: rgba(12, 22, 16, 0.18); border-color: transparent; }
+.banner-sub.show { opacity: 0.7; }
+.notice { background: rgba(12, 22, 16, 0.18); border-color: transparent; }
+.notice.show { opacity: 0.85; }
+.pens { background: rgba(12, 22, 16, 0.18); border-color: transparent; }
+.caption {
+  background: rgba(6, 12, 9, 0.2); border-color: transparent; color: rgba(244, 247, 242, 0.92);
+  text-shadow: 0 1px 2px #000, 0 0 5px rgba(0, 0, 0, 0.85);
+}
+.caption.show, .caption.sad.show { opacity: 0.85; }
+.caption.shout { font-size: clamp(18px, 2.6vw, 24px); border-color: transparent; }
+.caption.tense { border-color: transparent; }
+.caption b { opacity: 0.8; }
+
+/*
  * Phones: the thumbs are at the bottom and the pitch is small, so the caption is a thin strip
  * under the scoreboard — small type, two lines at most, see-through — and shouts are only a
  * little bigger instead of filling the screen.
