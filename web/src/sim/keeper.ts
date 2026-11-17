@@ -21,6 +21,16 @@ export interface Keeper {
   reflex: number; // 1–99
   /** Facing a penalty: he has to guess, so far fewer shots are saved than in open play. */
   penalty?: boolean;
+  /** Shoot-out, a person in goal: he dives only where he is told to (see `keeperDive`), and what he reaches he mostly stops. */
+  manual?: boolean;
+}
+
+/** A dive along the goal line on a person's say-so: `z` is the stick, −1 to 1. */
+export function keeperDive(k: Keeper, z: number): void {
+  if (k.state !== 'guard') return;
+  k.diveVel = { x: 0, z: Math.sign(z) * (3.2 + 3.8 * Math.min(1, Math.abs(z))) };
+  k.state = 'dive';
+  k.timer = 0.6;
 }
 
 export function createKeeper(p: Player, side: 1 | -1, reflex: number): Keeper {
@@ -37,6 +47,7 @@ export function resetKeeper(k: Keeper): void {
   k.state = 'guard';
   k.timer = 0;
   k.penalty = false;
+  k.manual = false;
 }
 
 /** Give the ball to the keeper (catch or goal kick). */
@@ -111,7 +122,7 @@ export function updateKeeper(
   if (!active || b.held || b.inGoal !== 0) return null;
 
   // React to a shot heading for goal by diving toward where it will cross.
-  if (k.state === 'guard' && b.ownerId === -1 && b.age > 0.15 && side * b.vel.x > 6) {
+  if (k.state === 'guard' && !k.manual && b.ownerId === -1 && b.age > 0.15 && side * b.vel.x > 6) {
     const t = (hl - side * b.pos.x) / (side * b.vel.x);
     if (t > 0 && t < 0.85) {
       const pz = b.pos.z + b.vel.z * t;
@@ -148,7 +159,8 @@ export function updateKeeper(
   if (k.rolledKick !== b.kickId) {
     k.rolledKick = b.kickId;
     const base = clamp(1.35 - (speed - 12.5) / 33, 0.3, 0.96) * (0.8 + (k.reflex / 99) * 0.25);
-    k.rollOk = rng() < base * (diving ? 0.85 : 1) * (k.penalty ? 0.42 : 1);
+    // A person who went the right way has done the hard part; the keeper who guesses by himself is discounted for it.
+    k.rollOk = k.manual ? rng() < 0.9 : rng() < base * (diving ? 0.85 : 1) * (k.penalty ? 0.42 : 1);
   }
   if (!k.rollOk) return null;
   if (speed < 17 && !diving) {

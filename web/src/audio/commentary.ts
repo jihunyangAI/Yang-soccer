@@ -1,6 +1,6 @@
 import type { Team } from '../sim/ball';
 import type { Match, MatchEvent } from '../sim/match';
-import { CAT, GOAL_CRY, iga, KEY, type Frag, type Mood, type Who } from './lines';
+import { CAT, GOAL_CRY, iga, KEY, SCORE_MAX, SIDE, surnameOf, type Frag, type Mood, type Who } from './lines';
 import { VoiceBank } from './voicebank';
 
 const STORE_KEY = 'pitchline.commentary.v1';
@@ -8,10 +8,13 @@ const STORE_KEY = 'pitchline.commentary.v1';
 const enum P { Colour = 1, Play = 2, Event = 3, Big = 4 }
 
 /** One piece of a line: a recorded fragment, or a club or player name slotted between fragments. */
-interface Part { key: string; text: string; kind: 'frag' | 'player' | 'team' }
+interface Part { key: string; text: string; kind: 'frag' | 'player' | 'team' | 'score'; /** Recordings to use instead, in order, when `key` has none. */ alts?: string[] }
 interface Line { who: Who; mood: Mood; parts: Part[] }
-/** What a line is built from: a group to pick a fragment from, or a name. */
-type Item = Frag[] | { p: string } | { t: string } | { g: string };
+/**
+ * What a line is built from: a group to pick a fragment from, a player (`n` = his shirt number),
+ * a club (`side` = which one it is in this match), a club as the subject of a sentence, or the score.
+ */
+type Item = Frag[] | { p: string; n?: number } | { t: string; side?: Team } | { g: string; side?: Team } | { s: [number, number] };
 
 /** How the browser's own voice delivers each mood, when a line has no recording. */
 const MOOD: Record<Mood, { rate: number; pitch: number; vol: number }> = {
@@ -201,9 +204,15 @@ export class Commentary {
     const lead = first ? first[0] : GOAL_CRY;
     const parts = items.map((i): Part => {
       if (Array.isArray(i)) { const f = pick(i); return { key: KEY.frag(f), text: f.text, kind: 'frag' }; }
-      if ('p' in i) return { key: KEY.player(i.p), text: i.p, kind: 'player' };
-      if ('g' in i) return { key: KEY.teamGa(i.g), text: iga(i.g), kind: 'team' };
-      return { key: KEY.team(lead.who, i.t), text: i.t, kind: 'team' };
+      if ('p' in i) {
+        // No recording of the full name: his family name alone, or failing that his shirt number.
+        const last = surnameOf(i.p);
+        return { key: KEY.player(i.p), text: i.p, kind: 'player', alts: [...(last ? [KEY.surname(last)] : []), ...(i.n ? [KEY.number(i.n)] : [])] };
+      }
+      if ('s' in i) return { key: KEY.score(i.s[0], i.s[1]), text: `${i.s[0]} 대 ${i.s[1]}`, kind: 'score' };
+      // A renamed club is "the home side" or "the away side".
+      if ('g' in i) return { key: KEY.teamGa(i.g), text: iga(i.g), kind: 'team', alts: i.side ? [KEY.teamGa(SIDE[i.side])] : [] };
+      return { key: KEY.team(lead.who, i.t), text: i.t, kind: 'team', alts: i.side ? [KEY.team(lead.who, SIDE[i.side])] : [] };
     });
     return { who: lead.who, mood: lead.mood, parts };
   }
@@ -230,7 +239,7 @@ export class Commentary {
     return line.parts.map((p, i) => {
       const next = line.parts[i + 1];
       // A name called before the rest of the line gets a comma; a club name leading into its sentence does not.
-      return p.kind === 'player' && next ? `${p.text},` : p.kind === 'player' ? `${p.text}!` : p.text;
+      return p.kind === 'player' && next ? `${p.text},` : p.kind === 'player' ? `${p.text}!` : p.kind === 'score' ? `${p.text}!` : p.text;
     }).join(' ');
   }
 
@@ -269,19 +278,16 @@ export class Commentary {
     if (!line) { this.busyP = 0; return; }
     const out = this.voiceOn ? this.out() : null;
     if (out && this.bank.size > 0) {
-      const keys = line.parts.map((p) => p.key);
-      let st = this.bank.want(out.ctx, keys);
+      // Each part is said from its own recording or the first stand-in there is: a player with
+      // no recording of his name (edited, or new in club development mode) is called by his
+      // family name or his number, a renamed club is "the home side". A name or score with
+      // nothing at all is left out rather than switching voices in the middle of a match.
+      const keys = line.parts.map((p) => [p.key, ...(p.alts ?? [])].find((k) => this.bank.has(k)) ?? null);
+      const fragsOk = line.parts.every((p, i) => p.kind !== 'frag' || keys[i]);
+      const play = keys.filter((k): k is string => !!k);
+      const st = fragsOk && play.length ? this.bank.want(out.ctx, play) : 'missing';
       // Give a recording that is still loading a moment before giving up on it for this line.
-      if (st === 'pending' && (this.waiting += dt) < 0.6) return;
-      let play = keys;
-      if (st !== 'ready') {
-        // A name with no recording (edited, or a player who joined in club development mode) is
-        // left out rather than switching voices in the middle of a match.
-        play = line.parts.filter((p) => p.kind === 'frag' || this.bank.has(p.key)).map((p) => p.key);
-        const fragsOk = line.parts.every((p) => p.kind !== 'frag' || this.bank.has(p.key));
-        st = fragsOk && play.length ? this.bank.want(out.ctx, play) : 'missing';
-        if (st === 'pending' && (this.waiting += dt) < 0.6) return;
-      }
+      if (st === 'pending' && (this.waiting += dt) < 0.8) return;
       if (st === 'ready') {
         this.queue.shift();
         this.waiting = 0;
@@ -327,16 +333,27 @@ export class Commentary {
       this.match = m; this.lastShot = -99; this.quiet = 0; this.lastKick = m.ball.kickId;
       this.hush();
       this.bank.prefetch([m.teams.home.id, m.teams.away.id]);
+      // The stand-in names are only fetched for a match that has someone to use them on.
+      if (m.players.some((p) => !this.bank.has(KEY.player(p.name))) || !this.bank.has(KEY.teamGa(m.teams.home.name)) || !this.bank.has(KEY.teamGa(m.teams.away.name))) {
+        this.bank.prefetchPack('extra');
+      }
     }
     if (this.busy > 0) this.busy -= dt;
     if (this.busy <= 0 && this.queue.length) this.next(dt);
     else if (this.busy <= 0) this.busyP = 0;
 
-    const name = (id: number) => m.players[id]?.name ?? '';
     const kicker = () => (m.ball.kickerId >= 0 ? m.players[m.ball.kickerId] : null);
     const other = (t: Team): Team => (t === 'home' ? 'away' : 'home');
-    // "옐로카드 · 9 홍길동" → "홍길동"
-    const noticeName = (word: string) => m.notices.find((n) => n.text.includes(word))?.text.replace(/^.*·\s*\d+\s+/, '') ?? '';
+    /** A player, a club, a club as the subject, and the score, as pieces of a line. */
+    const P_ = (p: { name: string; number: number }): Item => ({ p: p.name, n: p.number });
+    const T = (side: Team): Item => ({ t: m.teams[side].name, side });
+    const G = (side: Team): Item => ({ g: m.teams[side].name, side });
+    const score = (): Item[] => (m.score.home <= SCORE_MAX && m.score.away <= SCORE_MAX ? [{ s: [m.score.home, m.score.away] }] : []);
+    // "옐로카드 · 9 홍길동" → the player it names
+    const noticed = (word: string): Item | null => {
+      const x = m.notices.find((n) => n.text.includes(word))?.text.match(/·\s*(\d+)\s+(.+)$/);
+      return x ? { p: x[2], n: Number(x[1]) } : null;
+    };
     const late = m.time > m.matchSeconds * 0.8;
     const afterShot = this.clock - this.lastShot < 3;
 
@@ -350,21 +367,21 @@ export class Commentary {
         case 'shot': {
           this.lastShot = this.clock;
           const k = kicker();
-          this.say(P.Play, k ? [{ p: k.name }, CAT.shot] : [CAT.shot]);
+          this.say(P.Play, k ? [P_(k), CAT.shot] : [CAT.shot]);
           break;
         }
         case 'goal_home':
         case 'goal_away': {
           const g = m.lastGoal;
           const team: Team = ev === 'goal_home' ? 'home' : 'away';
-          const t = m.teams[team].name;
           const mine = m.score[team], theirs = m.score[other(team)];
-          const tail: Item[] = mine === theirs ? [CAT.goalEqual] : mine - theirs === 1 ? [{ g: t }, CAT.goalLead] : [CAT.goalMore];
+          // The score, then what it means: "2 대 1! 블루 레인저스가 앞서 나갑니다!"
+          const tail: Item[] = [...score(), ...(mine === theirs ? [CAT.goalEqual] : mine - theirs === 1 ? [G(team), CAT.goalLead] : [CAT.goalMore])];
           if (g?.own) this.say(P.Big, [CAT.own], [CAT.own2], tail, [CAT.ownA]);
           else {
-            const who = g ? name(g.scorerId) : '';
+            const who = g ? m.players[g.scorerId] : null;
             const remark = mine === theirs ? CAT.goalEqualA : mine - theirs >= 2 ? CAT.goalMoreA : CAT.goalA;
-            this.say(P.Big, [[GOAL_CRY]], who ? [CAT.goalCall, { t }, { p: who }, { p: who }] : [CAT.goalCall, { t }], tail, [CAT.goalWow, remark]);
+            this.say(P.Big, [[GOAL_CRY]], who ? [CAT.goalCall, T(team), P_(who), P_(who)] : [CAT.goalCall, T(team)], tail, [CAT.goalWow, remark]);
           }
           this.lastShot = -99;
           break;
@@ -373,7 +390,7 @@ export class Commentary {
           // The keeper of the side that did not shoot.
           const k = kicker();
           const gk = k ? m.keepers[other(k.team)].p : null;
-          this.say(P.Event, [CAT.save], gk ? [{ p: gk.name }, CAT.saveKeeper] : [CAT.saveNoName], [CAT.saveA]);
+          this.say(P.Event, [CAT.save], gk ? [P_(gk), CAT.saveKeeper] : [CAT.saveNoName], [CAT.saveA]);
           this.lastShot = -99;
           break;
         }
@@ -390,7 +407,7 @@ export class Commentary {
         case 'throw': this.say(P.Colour, [CAT.throwIn]); break;
         case 'tackle': {
           const o = m.owner();
-          if (this.free && Math.random() < 0.6) this.say(P.Play, o ? [{ p: o.name }, CAT.tackle] : [CAT.tackleNoName]);
+          if (this.free && Math.random() < 0.6) this.say(P.Play, o ? [P_(o), CAT.tackle] : [CAT.tackleNoName]);
           break;
         }
         case 'block': if (this.free && Math.random() < 0.4) this.say(P.Colour, [CAT.block]); break;
@@ -398,13 +415,13 @@ export class Commentary {
         case 'penalty': this.say(P.Big, [CAT.penalty], [CAT.penalty2], [CAT.penaltyA]); break;
         case 'offside': this.say(P.Play, [CAT.offside], [CAT.offsideA]); break;
         case 'yellow': {
-          const who = noticeName('옐로카드');
-          this.say(P.Event, who ? [CAT.yellow, { p: who }, CAT.yellow2] : [CAT.yellow, CAT.yellow2], [CAT.yellowA]);
+          const who = noticed('옐로카드');
+          this.say(P.Event, who ? [CAT.yellow, who, CAT.yellow2] : [CAT.yellow, CAT.yellow2], [CAT.yellowA]);
           break;
         }
         case 'red': {
-          const who = noticeName('퇴장') || noticeName('레드카드');
-          this.say(P.Big, [CAT.red], who ? [{ p: who }, CAT.red2] : [CAT.red2], [CAT.redA]);
+          const who = noticed('퇴장') ?? noticed('레드카드');
+          this.say(P.Big, [CAT.red], who ? [who, CAT.red2] : [CAT.red2], [CAT.redA]);
           break;
         }
         case 'sub': this.say(P.Colour, [CAT.sub], [CAT.subA]); break;
@@ -412,8 +429,8 @@ export class Commentary {
           const { home, away } = m.score;
           const sh = m.shots, more: Team | null = sh.home === sh.away ? null : sh.home > sh.away ? 'home' : 'away';
           const lead: Team = home > away ? 'home' : 'away';
-          this.say(P.Event, [CAT.half], home === away ? [CAT.level] : [{ g: m.teams[lead].name }, CAT.ahead],
-            more ? [{ t: m.teams[more].name }, CAT.halfShotsA] : [CAT.halfEvenA]);
+          this.say(P.Event, [CAT.half], [...score(), ...(home === away ? [CAT.level] : [G(lead), CAT.ahead])],
+            more ? [T(more), CAT.halfShotsA] : [CAT.halfEvenA]);
           break;
         }
         case 'extratime': this.say(P.Big, [CAT.extra], [CAT.extraA]); break;
@@ -424,7 +441,7 @@ export class Commentary {
         case 'fulltime': {
           const w = m.winner;
           const pens = !!m.shootout && m.score.home === m.score.away;
-          this.say(P.Big, [CAT.full], w ? [{ t: m.teams[w].name }, pens ? CAT.winPens : CAT.win] : [CAT.draw], [w ? CAT.winA : CAT.drawA], [CAT.bye]);
+          this.say(P.Big, [CAT.full], [...(pens ? [] : score()), ...(w ? [T(w), pens ? CAT.winPens : CAT.win] : [CAT.draw])], [w ? CAT.winA : CAT.drawA], [CAT.bye]);
           break;
         }
       }
@@ -439,7 +456,7 @@ export class Commentary {
       // A pass on its way to a teammate: call some of them, short enough to keep up.
       if (this.free && k && to && to.team === k.team && Math.random() < 0.45) {
         const long = Math.hypot(to.pos.x - k.pos.x, to.pos.z - k.pos.z) > 22;
-        this.say(P.Colour, long ? [{ p: k.name }, CAT.longPass, { p: to.name }] : [{ p: k.name }, { p: to.name }]);
+        this.say(P.Colour, long ? [P_(k), CAT.longPass, P_(to)] : [P_(k), P_(to)]);
       }
     }
     this.quiet += dt;
@@ -447,19 +464,19 @@ export class Commentary {
       const o = m.owner();
       if (!o || o.role !== 'field') { this.quiet = 2; return; }
       const depth = o.pos.x * m.dir(o.team); // metres toward the opponent's goal
-      const t = m.teams[o.team].name, opp = m.teams[other(o.team)].name;
+      const t = T(o.team), opp = T(other(o.team)), me = P_(o);
       const gap = m.score[o.team] - m.score[other(o.team)];
       const coin = Math.random() < 0.5;
       const danger = depth > 30;
-      const call: Item[] = danger ? (coin ? [{ p: o.name }, CAT.danger] : [{ t }, CAT.dangerTeam])
-        : depth > 0 ? (coin ? [{ p: o.name }, CAT.mid] : [{ t }, CAT.midTeam])
-        : coin ? [{ p: o.name }, CAT.back] : [{ t }, CAT.backTeam];
-      const remark: Item[] = late && gap < 0 ? (coin ? [{ t }, CAT.lateLosingTeamA] : [CAT.lateLosingA])
-        : late && gap > 0 ? (coin ? [{ t }, CAT.lateWinningTeamA] : [{ t: opp }, CAT.lateWinningOppA])
+      const call: Item[] = danger ? (coin ? [me, CAT.danger] : [t, CAT.dangerTeam])
+        : depth > 0 ? (coin ? [me, CAT.mid] : [t, CAT.midTeam])
+        : coin ? [me, CAT.back] : [t, CAT.backTeam];
+      const remark: Item[] = late && gap < 0 ? (coin ? [t, CAT.lateLosingTeamA] : [CAT.lateLosingA])
+        : late && gap > 0 ? (coin ? [t, CAT.lateWinningTeamA] : [opp, CAT.lateWinningOppA])
         : late ? [CAT.lateA]
         : danger ? [CAT.dangerA]
-        : depth > 0 ? (Math.random() < 0.3 ? [{ t: opp }, CAT.midOppA] : [CAT.midA])
-        : Math.random() < 0.35 ? [{ t: opp }, CAT.backOppA] : [CAT.backA];
+        : depth > 0 ? (Math.random() < 0.3 ? [opp, CAT.midOppA] : [CAT.midA])
+        : Math.random() < 0.35 ? [opp, CAT.backOppA] : [CAT.backA];
       // The analyst joins in about half the time.
       if (Math.random() < 0.55) this.say(P.Colour, call, remark); else this.say(P.Colour, call);
     }

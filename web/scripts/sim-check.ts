@@ -460,6 +460,36 @@ type Internals = { foul(t: Player, v: Player, fromBehind: boolean): void };
     if (humanKicks >= 2) break;
   }
   check('shoot-out: a person takes the kick with the shoot button, and a kick not taken is a miss', took && timedOut, `took=${took} timed out=${timedOut} after ${waited.toFixed(1)} s`);
+  // A person in goal: he goes the way the stick is held, stays put without it, and saves more by going the right way.
+  {
+    const run = (guess: 'right' | 'wrong' | 'none') => {
+      let faced = 0, saved = 0, dives = 0, moved = 0;
+      for (let i = 0; i < 10; i++) {
+        const g = toShootout(120 + i, ['home']);
+        for (let k = 0; k < 60 * 300 && g.phase !== 'fulltime' && g.pens; k++) {
+          const facing = g.pens.turn === 'away' && g.phase === 'play';
+          // The shot's direction is known a moment after it is struck, inside the time allowed for a late dive.
+          const vz = g.pens.live ? Math.sign(g.ball.vel.z) || 1 : 0;
+          const mz = !facing || guess === 'none' ? 0 : guess === 'right' ? vz : -vz;
+          // On the player's own kicks, shoot.
+          const act = g.pens.turn === 'home' && g.phase === 'play' && !g.pens.live ? (k % 20 < 4 ? press('shoot') : { ...idle(), up: new Set(['shoot']) }) : { ...idle(), mz };
+          const z0 = g.keepers.home.p.pos.z, was = g.keepers.home.state;
+          g.step({ home: act }, DT);
+          if (facing && was === 'guard' && g.keepers.home.state === 'dive') { dives++; }
+          if (facing && g.pens?.live) moved = Math.max(moved, Math.abs(g.keepers.home.p.pos.z - z0) / DT);
+          for (const e of g.events) {
+            if ((e === 'pen_goal' || e === 'pen_saved' || e === 'pen_missed') && facing) { faced++; if (e === 'pen_saved') saved++; }
+          }
+          g.events.length = 0;
+        }
+      }
+      return { faced, saved, dives, moved };
+    };
+    const right = run('right'), wrong = run('wrong'), none = run('none');
+    check('shoot-out: a person in goal dives the way the stick is held, and going the right way saves kicks',
+      right.faced > 25 && right.dives >= right.faced * 0.9 && none.dives === 0 && right.saved / right.faced > 0.3 && right.saved > wrong.saved * 2 && wrong.saved / Math.max(1, wrong.faced) < 0.15,
+      `right way: ${right.saved}/${right.faced} saved (${right.dives} dives), wrong way: ${wrong.saved}/${wrong.faced}, no stick: ${none.saved}/${none.faced} saved with ${none.dives} dives`);
+  }
 }
 
 // Club development: players grow and age, money comes in, signings and sales keep a workable squad.

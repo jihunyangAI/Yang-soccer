@@ -35,6 +35,12 @@ export class VoiceBank {
       .catch(() => { this.packs.set(i, 'failed'); });
   }
 
+  /** Start fetching a pack by name (the stand-in names: family names, shirt numbers, "home side"). */
+  prefetchPack(name: string): void {
+    const i = this.index ? this.index.packs.indexOf(name) : -1;
+    if (i >= 0) this.loadPack(i);
+  }
+
   /** Start fetching the name packs of the clubs in a match, so the first call of a name does not wait. */
   prefetch(teamIds: string[]): void {
     if (!this.index) return;

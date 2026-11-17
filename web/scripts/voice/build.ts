@@ -6,8 +6,8 @@
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { allFragments, fragId, GOAL_CRY, iga, KEY, type Frag, type Mood, type Who } from '../../src/audio/lines';
-import { buildRoster } from '../../src/sim/roster';
+import { allFragments, fragId, GOAL_CRY, iga, KEY, SCORE_MAX, scoreWords, SIDE, type Frag, type Mood, type Who } from '../../src/audio/lines';
+import { buildRoster, LAST } from '../../src/sim/roster';
 import { TEAMS } from '../../src/sim/team';
 
 const web = process.cwd();
@@ -44,7 +44,7 @@ const SCENE: Record<Mood, string> = {
   sad: '결정적인 기회를 놓쳤다. 탄식하며 아쉽게.', shock: '믿기지 않는 일이 벌어졌다. 깜짝 놀라서.', calm: '편안하게 분석을 덧붙인다.',
 };
 
-interface Job { key: string; file: string; kind: 'act' | 'read'; who: Who; text: string; scene: string }
+interface Job { key: string; file: string; kind: 'act' | 'read'; who: Who; text: string; scene: string; /** Shipped in the pack of stand-in names, fetched only when a match needs them. */ extra?: boolean }
 const safe = (s: string) => Buffer.from(s, 'utf8').toString('hex').slice(0, 80);
 const jobs: Job[] = [];
 for (const f of allFragments()) jobs.push({ key: KEY.frag(f), file: `f-${fragId(f)}.mp3`, kind: 'act', who: f.who, text: f.text, scene: SCENE[f.mood] });
@@ -58,6 +58,22 @@ for (const name of teamNames) {
 const squads = TEAMS.map((t) => ({ id: t.id, names: [...new Set(buildRoster(t, true).map((p) => p.name))] }));
 for (const name of new Set(squads.flatMap((s) => s.names))) {
   jobs.push({ key: KEY.player(name), file: `p-${safe(name)}.mp3`, kind: 'read', who: 'caster', text: `${name}!`, scene: '한국 축구 중계의 남자 캐스터가 경기 중 선수 이름을 힘 있고 또렷하게 부른다. 짧게, 빠르게.' });
+}
+
+// The score, read out after a goal and at the whistle.
+for (let h = 0; h <= SCORE_MAX; h++) for (let a = 0; a <= SCORE_MAX; a++) {
+  jobs.push({ key: KEY.score(h, a), file: `sc-${h}-${a}.mp3`, kind: 'act', who: 'caster', text: `${scoreWords(h, a)}!`, scene: '경기 중 현재 점수를 힘 있고 또렷하게 알린다. 짧게, 빠르게.' });
+}
+// Stand-ins for names that have no recording: family names, shirt numbers, and "the home side".
+const NAME_SCENE = '한국 축구 중계의 남자 캐스터가 경기 중 선수 이름을 힘 있고 또렷하게 부른다. 짧게, 빠르게.';
+for (const last of LAST) jobs.push({ key: KEY.surname(last), file: `s-${safe(last)}.mp3`, kind: 'read', who: 'caster', text: `${last}!`, scene: NAME_SCENE, extra: true });
+for (let n = 1; n <= 99; n++) {
+  jobs.push({ key: KEY.number(n), file: `n-${n}.mp3`, kind: 'read', who: 'caster', text: `${n}번!`, scene: '한국 축구 중계의 남자 캐스터가 경기 중 선수를 등번호로 힘 있고 또렷하게 부른다. 짧게, 빠르게.', extra: true });
+}
+for (const name of Object.values(SIDE)) {
+  jobs.push({ key: KEY.team('caster', name), file: `tc-${safe(name)}.mp3`, kind: 'act', who: 'caster', text: `${name}!`, scene: '경기 중 팀을 힘 있게 짧게 부른다.', extra: true });
+  jobs.push({ key: KEY.team('analyst', name), file: `ta-${safe(name)}.mp3`, kind: 'act', who: 'analyst', text: name, scene: '해설 도중 팀을 가리켜 말한다. 문장이 뒤에 이어질 것처럼 끝을 내리지 않는다.', extra: true });
+  jobs.push({ key: KEY.teamGa(name), file: `tg-${safe(name)}.mp3`, kind: 'act', who: 'caster', text: iga(name), scene: '경기 중 팀을 주어로 말한다. 문장이 뒤에 이어질 것처럼 끝을 내리지 않는다.', extra: true });
 }
 
 // ---- recording ----
@@ -137,7 +153,8 @@ function pack(): void {
   const byKey = new Map(jobs.map((j) => [j.key, j]));
   const playerKeys = new Set(squads.flatMap((s) => s.names.map((n) => KEY.player(n))));
   const groups: { name: string; keys: string[] }[] = [
-    { name: 'core', keys: jobs.filter((j) => !playerKeys.has(j.key)).map((j) => j.key) },
+    { name: 'core', keys: jobs.filter((j) => !playerKeys.has(j.key) && !j.extra).map((j) => j.key) },
+    { name: 'extra', keys: jobs.filter((j) => j.extra).map((j) => j.key) },
     ...squads.map((s) => ({ name: `team-${s.id}`, keys: s.names.map((n) => KEY.player(n)) })),
   ];
   const index: { packs: string[]; clips: Record<string, [number, number, number]> } = { packs: [], clips: {} };

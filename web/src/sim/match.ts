@@ -1,7 +1,7 @@
 import { createBall, placeBall, stepBall, type Ball, type Team } from './ball';
 import { aiCarrier, aiOffBall, formationTarget, interceptPoint, passScore, type AiDecision, type Role } from './ai';
 import { BALL_RADIUS as R, BOX, GOAL, GRAVITY, PITCH } from './constants';
-import { createKeeper, keeperTakeBall, keeperThrow, resetKeeper, updateKeeper, type Keeper } from './keeper';
+import { createKeeper, keeperTakeBall, keeperThrow, resetKeeper, updateKeeper, type Keeper, keeperDive } from './keeper';
 import { clamp, wrapAngle, type V2 } from './math';
 import {
   ballDistance, canControl, createPlayer, dribble, firstTouch, footFor, KICK_GATHER, KICK_TURN, kickAcross, kickReady, kickSpot, movePlayer, readKickInput, seek, shoot, strike, tickTimers,
@@ -955,6 +955,11 @@ export class Match {
     for (const team of ['home', 'away'] as const) {
       const k = this.keepers[team];
       if (this.pens && team === this.pens.turn) continue; // the taker's keeper only watches
+      if (this.pens && k.manual && this.pens.live && !this.pensDived && this.pens.timer > 2.6 - 0.22) {
+        // A person in goal: the way the stick is held as the kick is struck (or just after) is the way he goes.
+        const z = (input[team] ?? NO_INPUT).mz;
+        if (Math.abs(z) > 0.3) { keeperDive(k, z); this.pensDived = true; }
+      }
       const o = this.owner();
       const ev = updateKeeper(k, b, !!o && o.team !== team, dt, this.rng, playing);
       if (this.pens && this.pens.live && (ev === 'save' || ev === 'catch') && team !== this.pens.turn) { this.endPenalty(false, 'pen_saved'); return; }
@@ -1038,6 +1043,8 @@ export class Match {
   /** Second half: swap ends. */
   // ---------- penalty shoot-out ----------
   private pensKickId = -1;
+  /** Whether the person in goal has already dived at this kick. */
+  private pensDived = false;
 
   private startShootout(): void {
     const order = (team: Team) => [...this.fieldOf(team)].sort((a, c) => c.stats.shoot - a.stats.shoot).map((p) => p.id);
@@ -1076,6 +1083,8 @@ export class Match {
     resetKeeper(this.keepers.home); resetKeeper(this.keepers.away);
     this.applyRestart({ kind: 'penalty', team, taker: pk.taker });
     this.keepers[otherTeam(team)].penalty = true;
+    this.keepers[otherTeam(team)].manual = this.isHuman(otherTeam(team));
+    this.pensDived = false;
     mine.pos.x = PITCH.halfLength - BOX.depth - 2; mine.pos.z = -BOX.halfWidth - 3; mine.facing = 0;
     pk.live = false;
     pk.timer = 9;

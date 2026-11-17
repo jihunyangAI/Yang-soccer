@@ -26,7 +26,22 @@ export const KEY = {
   player: (name: string) => `p:${name}`,
   team: (who: Who, name: string) => `t:${who === 'caster' ? 'c' : 'a'}:${name}`,
   teamGa: (name: string) => `g:${name}`,
+  /** A family name on its own ("로시!"), for a player whose full name has no recording. */
+  surname: (name: string) => `s:${name}`,
+  /** A shirt number ("9번!"), for a player whose name cannot be said at all. */
+  number: (n: number) => `n:${n}`,
+  score: (home: number, away: number) => `sc:${home}-${away}`,
 };
+
+/** What a club whose name has no recording (renamed in the editor) is called instead. */
+export const SIDE = { home: '홈팀', away: '원정팀' } as const;
+/** Scores up to this many goals a side are read out. */
+export const SCORE_MAX = 6;
+const DIGIT = ['영', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
+/** A score as it is said: "이 대 일". */
+export const scoreWords = (home: number, away: number): string => `${DIGIT[home]} 대 ${DIGIT[away]}`;
+/** The family name of an invented international name ("이브라힘 로시" → "로시"); none for a Korean name. */
+export const surnameOf = (name: string): string => { const i = name.trim().lastIndexOf(' '); return i > 0 ? name.trim().slice(i + 1) : ''; };
 
 /** Subject particle for a name: 이 after a final consonant, 가 otherwise ("블루 레인저스가", "크림슨이"). */
 export const iga = (word: string): string => {

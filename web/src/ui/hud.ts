@@ -189,7 +189,8 @@ export class Hud {
         pens.innerHTML = `<b>승부차기</b>
           <span class="${m.pens.turn === 'home' ? 'on' : ''}">${m.teams.home.short} ${dots('home')} <b>${m.shootout?.home ?? 0}</b></span>
           <span class="${m.pens.turn === 'away' ? 'on' : ''}">${m.teams.away.short} ${dots('away')} <b>${m.shootout?.away ?? 0}</b></span>
-          ${m.isHuman(m.pens.turn) ? '<small>방향을 잡고 슛 버튼으로 찹니다</small>' : ''}`;
+          ${m.isHuman(m.pens.turn) ? '<small>방향을 잡고 슛 버튼으로 찹니다</small>'
+            : m.isHuman(m.pens.turn === 'home' ? 'away' : 'home') ? '<small>골키퍼: 공이 올 쪽으로 스틱(방향키)을 밀고 있으면 그쪽으로 몸을 날립니다</small>' : ''}`;
       }
     }
 
