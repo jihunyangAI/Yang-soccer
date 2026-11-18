@@ -14,7 +14,7 @@ export function helpHtml(touch: boolean): string {
       <div class="card-label">키보드</div>
       <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 · <kbd>Shift</kbd> 달리기 · <kbd>Space</kbd> 선수 전환</div>
       <div><b>공격</b> <kbd>J</kbd> 패스 · <kbd>L</kbd> 스루패스 · <kbd>I</kbd> 로빙 · <kbd>K</kbd> 슛 (길게 누르면 세게)</div>
-      <div><b>수비</b> <kbd>J</kbd> 누르고 있기 = 압박 · <kbd>K</kbd> 태클</div>
+      <div><b>수비</b> <kbd>J</kbd> 누르고 있기 = 압박 · <kbd>K</kbd> 누르고 있기 = 달려가서 태클</div>
       <div><kbd>Z</kbd> 카메라 · <kbd>C</kbd> 해설 · <kbd>M</kbd> 소리 · <kbd>H</kbd> 도움말 · <kbd>Esc</kbd> 일시정지</div>
       <div class="hp-dim">2인 대전: P2는 <kbd>방향키</kbd> 이동 · <kbd>,</kbd> 패스 · <kbd>.</kbd> 슛 · <kbd>/</kbd> 스루 · <kbd>;</kbd> 로빙 · <kbd>R-Shift</kbd> 달리기 · <kbd>'</kbd> 전환</div>
     </div>

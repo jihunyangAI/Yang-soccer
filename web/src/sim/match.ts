@@ -4,7 +4,7 @@ import { BALL_RADIUS as R, BOX, GOAL, GRAVITY, PITCH } from './constants';
 import { createKeeper, keeperTakeBall, keeperThrow, resetKeeper, updateKeeper, type Keeper, keeperDive } from './keeper';
 import { clamp, wrapAngle, type V2 } from './math';
 import {
-  ballDistance, canControl, createPlayer, dribble, firstTouch, footFor, KICK_GATHER, KICK_TURN, kickAcross, kickReady, kickSpot, movePlayer, readKickInput, seek, shoot, strike, tickTimers,
+  ballDistance, canControl, createPlayer, dribble, firstTouch, footFor, footPoint, KICK_GATHER, KICK_TURN, kickAcross, kickReady, kickSpot, movePlayer, readKickInput, seek, shoot, strike, tickTimers,
   type Actions, type KickKind, type Player,
 } from './player';
 import { createRng, type Rng } from './rng';
@@ -51,13 +51,18 @@ export interface MatchConfig {
   lineupGiven?: Team[];
   /** Optional per-team AI level override (tests, demo). */
   levels?: Partial<Record<Team, Difficulty>>;
+  /**
+   * Easy control: control passes sooner to whoever is nearer the ball, and holding a defending
+   * button (press or tackle) sends the player to the ball by himself; he only tackles within reach.
+   */
+  easyControl?: boolean;
   seed: number;
 }
 
 export const DEFAULT_CONFIG: MatchConfig = {
   home: TEAMS[0], away: TEAMS[3],
   homeFormation: TEAMS[0].formation, awayFormation: TEAMS[3].formation,
-  seconds: 300, offside: true, humans: ['home'], assist: [], difficulty: 'normal', seed: 20261115,
+  seconds: 300, offside: true, humans: ['home'], assist: [], difficulty: 'normal', easyControl: true, seed: 20261115,
 };
 
 /** Inputs for each human-controlled team this tick. */
@@ -869,9 +874,13 @@ export class Match {
         // further away. It only changes when someone is clearly better, so it does not flicker.
         const best = this.bestPlaced(team);
         const now = this.reach(human), then = this.reach(best);
-        if (best.id !== human.id && then < now - 1.6 && then < now * 0.84) {
+        // Easy control: a slightly better-placed player is enough, and pressing a defending button picks the best one at once.
+        const easy = !!this.config.easyControl;
+        const defendPress = easy && !!owner && owner.team !== team && (a.down.has('pass') || a.down.has('shoot'));
+        const better = easy ? then < now - 0.7 && then < now * 0.93 : then < now - 1.6 && then < now * 0.84;
+        if (best.id !== human.id && (better || (defendPress && then < now - 0.2))) {
           this.ctrl[team] = best.id;
-          this.switchLock[team] = 0.4;
+          this.switchLock[team] = easy ? 0.35 : 0.4;
         }
       }
       const c = this.players[this.ctrl[team]];
@@ -903,14 +912,28 @@ export class Match {
         } else {
           c.pending = null;
           c.charge = { kind: null, t: 0 };
-          if (a.held.has('pass') && owner) {
+          if (this.config.easyControl && owner) {
+            // Easy control: holding press or tackle sends him at the carrier by himself, and he
+            // tackles only when he is within reach (no lunging at thin air from a distance).
+            // (A tap shorter than one tick arrives as pressed and released at once, so it counts as held too.)
+            const pressHeld = a.held.has('pass') || a.down.has('pass'), tackleHeld = a.held.has('shoot') || a.down.has('shoot');
+            const dist = ballDistance(c, b);
+            if (pressHeld || tackleHeld) {
+              const f = footPoint(owner);
+              const s = seek(c, f.x + owner.vel.x * 0.3, f.z + owner.vel.z * 0.3, 0.8);
+              if (Math.hypot(a.mx, a.mz) < 0.2) { mx = s.x; mz = s.z; }
+              else { mx = (a.mx + s.x) / 2; mz = (a.mz + s.z) / 2; }
+              sprint = dist > 2.5 || a.sprint;
+            }
+            if (tackleHeld && c.tackleCooldown === 0 && dist < 1.3) this.tackle(c);
+          } else if (a.held.has('pass') && owner) {
             // Press: run at the ball carrier.
             const s = seek(c, b.pos.x, b.pos.z, 0.8);
             if (Math.hypot(a.mx, a.mz) < 0.2) { mx = s.x; mz = s.z; }
             else { mx = (a.mx + s.x) / 2; mz = (a.mz + s.z) / 2; }
             sprint = true;
           }
-          if (a.down.has('shoot') && c.tackleCooldown === 0) this.tackle(c);
+          if (!this.config.easyControl && a.down.has('shoot') && c.tackleCooldown === 0) this.tackle(c);
         }
       }
       humanMove.set(c.id, { mx, mz, sprint });

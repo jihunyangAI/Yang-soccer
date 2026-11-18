@@ -68,7 +68,7 @@ export class Hud {
           <div class="row-title">공격</div>
           <div><kbd>J</kbd> 패스 · <kbd>L</kbd> 스루패스 · <kbd>I</kbd> 로빙 · <kbd>K</kbd> 슛 (길게)</div>
           <div class="row-title">수비</div>
-          <div><kbd>J</kbd> 누르고 있기 = 압박 · <kbd>K</kbd> 태클</div>
+          <div><kbd>J</kbd> 누르고 있기 = 압박 · <kbd>K</kbd> 누르고 있기 = 달려가서 태클</div>
         </div>
         <div data-id="help2" hidden>
           <div class="row-title">P1 (노랑)</div>
