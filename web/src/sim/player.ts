@@ -39,6 +39,8 @@ export interface Player {
   aiDir: V2;
   /** AI off the ball: the opponent being marked (-1 = none), and the spot being run to with seconds until it is reconsidered. */
   aiMark: number;
+  /** AI: the set piece this player is taking (0 none, 1 throw-in, 2 corner); it is played to a teammate at once, not dribbled. */
+  setPiece: 0 | 1 | 2;
   aiSpot: V2;
   aiSpotT: number;
   /** Visual-only animation state. */
@@ -115,6 +117,7 @@ export function createPlayer(id: number, team: Team, role: 'field' | 'gk', slot:
     think: 0,
     aiDir: { x: 0, z: 0 },
     aiMark: -1,
+    setPiece: 0,
     aiSpot: { x: 0, z: 0 },
     aiSpotT: 0,
     runPhase: 0,

@@ -97,6 +97,28 @@ export function aiCarrier(m: Match, p: Player, dt: number): AiDecision {
   if (p.think > 0) return { type: 'move', mx: p.aiDir.x, mz: p.aiDir.z, sprint: nearOpp > 4 };
   p.think = (0.22 + m.rng() * 0.18) / m.skill[p.team];
 
+  // A corner or a throw-in is played to a teammate at once. Scored like an ordinary pass it lost
+  // to dribbling, and the taker ran the ball along the line and out of play.
+  if (p.setPiece !== 0) {
+    const corner = p.setPiece === 2;
+    p.setPiece = 0;
+    let to: Player | null = null, toScore = -Infinity;
+    for (const q of m.teammatesOf(p)) {
+      const d = Math.hypot(q.pos.x - p.pos.x, q.pos.z - p.pos.z);
+      if (d < 4 || d > 45) continue;
+      let s = passScore(m, p, q);
+      if (s === -Infinity) s = -20 - d * 0.1; // a poor target is still better than none
+      // A corner goes in front of goal, a throw-in to someone near.
+      if (corner) s -= Math.hypot(q.pos.x - dir * (HL - 9), q.pos.z) * 0.25;
+      else s -= d * 0.08;
+      if (s > toScore) { toScore = s; to = q; }
+    }
+    if (to) {
+      const d = Math.hypot(to.pos.x - p.pos.x, to.pos.z - p.pos.z);
+      return { type: 'pass', target: to, kind: d > (corner ? 14 : 26) ? 'lob' : 'pass' };
+    }
+  }
+
   // Shoot when in range with a reasonable angle.
   if (dGoal < 26 && Math.abs(p.pos.z) < 18) {
     const chance = dGoal < 16 ? 1 : nearOpp < 3 ? 0.6 : 0.3;
@@ -145,6 +167,7 @@ export function aiCarrier(m: Match, p: Player, dt: number): AiDecision {
   }
   // Stay inside the pitch.
   if (Math.abs(p.pos.z) > PITCH.halfWidth - 4) hz -= Math.sign(p.pos.z) * 1.2;
+  if (Math.abs(p.pos.x) > HL - 3) hx -= Math.sign(p.pos.x) * 1.2; // the goal lines too
   const L = Math.hypot(hx, hz) || 1;
   p.aiDir = { x: hx / L, z: hz / L };
   return { type: 'move', mx: p.aiDir.x, mz: p.aiDir.z, sprint: nearOpp > 4 };

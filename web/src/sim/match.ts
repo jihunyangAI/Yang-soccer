@@ -333,6 +333,10 @@ export class Match {
     this.ball.lastTouch = p.team;
     this.lastOwnerTeam = p.team;
     p.think = 0.6;
+    // He stands still until his first decision: carrying on in the direction he was last dribbling
+    // took the ball straight out of play from a corner or a throw-in.
+    p.aiDir = { x: 0, z: 0 };
+    p.setPiece = 0;
     for (const team of this.humans) {
       this.ctrl[team] = team === p.team ? p.id : this.nearestField(team, this.ball.pos).id;
     }
@@ -459,6 +463,7 @@ export class Match {
     }
     taker.vel.x = 0; taker.vel.z = 0;
     this.giveTo(taker);
+    taker.setPiece = r.kind === 'throw' ? 1 : r.kind === 'corner' ? 2 : 0;
     if (r.kind === 'freekick') this.buildWall(r.team);
     this.enter('ready', r.kind === 'freekick' ? 1.2 : 0.7, null);
   }
