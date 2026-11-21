@@ -16,7 +16,7 @@ export type MatchEvent =
   | 'goal_home' | 'goal_away' | 'save' | 'post' | 'shot' | 'tackle' | 'block'
   | 'throw' | 'corner' | 'goalkick' | 'kickoff' | 'halftime' | 'fulltime' | 'extratime'
   | 'foul' | 'penalty' | 'offside' | 'yellow' | 'red' | 'sub'
-  | 'shootout' | 'pen_goal' | 'pen_saved' | 'pen_missed';
+  | 'shootout' | 'pen_goal' | 'pen_saved' | 'pen_missed' | 'header';
 export type Difficulty = 'easy' | 'normal' | 'hard';
 
 type Restart =
@@ -1014,8 +1014,10 @@ export class Match {
       if (this.pens.live) b.ownerId = -1;
       this.checkGoalOrOut();
     } else if (this.phase === 'play') {
-      this.blockBall();
-      this.resolvePossession();
+      if (!this.headBall()) {
+        this.blockBall();
+        this.resolvePossession();
+      }
       if (this.phase === 'play') this.checkGoalOrOut();
     }
   }
@@ -1150,6 +1152,83 @@ export class Match {
   private switchEnds(): void {
     this.flipped = !this.flipped;
     for (const k of Object.values(this.keepers)) k.side = (-k.side) as 1 | -1;
+  }
+
+  /**
+   * A loose ball at head height is headed by the nearest outfield player under it: at goal when he
+   * is close enough to score, clear of danger in his own third, otherwise on to a teammate.
+   * Returns true when the ball was headed (or an offside player went for it).
+   */
+  private headBall(): boolean {
+    const b = this.ball;
+    if (b.ownerId !== -1 || b.held || b.pos.y < 1.35 || b.pos.y > 2.45 || b.age < 0.3) return false;
+    let p: Player | null = null, bd = 0.75;
+    for (const q of this.players) {
+      if (q.role === 'gk' || q.sentOff || q.stumble > 0 || q.kickCooldown > 0) continue;
+      const d = Math.hypot(b.pos.x - q.pos.x, b.pos.z - q.pos.z);
+      if (d < bd) { bd = d; p = q; }
+    }
+    if (!p) return false;
+    if (b.offsideTeam === p.team && b.offsideIds.includes(p.id)) {
+      this.events.push('offside');
+      b.vel.x = 0; b.vel.z = 0;
+      this.enter('out', 1.3, {
+        kind: 'freekick', team: otherTeam(p.team),
+        x: clamp(p.pos.x, -PITCH.halfLength + 1, PITCH.halfLength - 1),
+        z: clamp(p.pos.z, -PITCH.halfWidth + 1, PITCH.halfWidth - 1),
+      });
+      return true;
+    }
+    const dir = this.dir(p.team), hl = PITCH.halfLength, gx = dir * hl;
+    const dGoal = Math.hypot(gx - p.pos.x, p.pos.z);
+    let vx: number, vy: number, vz: number, target: Player | null = null, shot = false;
+    if (dGoal < 16 && Math.abs(p.pos.z) < 14) {
+      // At goal, away from the keeper; the worse the finisher, the wider it can go.
+      const gk = this.keeperFacing(p.team).p;
+      const side = gk.pos.z > 0 ? -1 : 1;
+      const err = (1.2 - p.stats.shoot / 99) * 3.2;
+      const aimZ = side * (GOAL.halfWidth - 1.0) + (this.rng() - 0.5) * 2 * err;
+      const dx = gx - b.pos.x, dz = aimZ - b.pos.z, L = Math.hypot(dx, dz) || 1;
+      const sp = 13 + (p.stats.shoot / 99) * 4;
+      vx = (dx / L) * sp; vz = (dz / L) * sp; vy = 0.5 + this.rng() * 1.5;
+      shot = true;
+    } else if (p.pos.x * dir < -hl + 30) {
+      // In his own third: away from goal and toward the nearer touchline.
+      const uz = (Math.sign(p.pos.z) || 1) * 0.6, L = Math.hypot(1, uz);
+      vx = (dir / L) * 13; vz = (uz / L) * 13; vy = 5;
+    } else {
+      // On to the best-placed teammate within reach, or down in front of himself.
+      let best = -Infinity;
+      for (const q of this.teammatesOf(p)) {
+        const d = Math.hypot(q.pos.x - p.pos.x, q.pos.z - p.pos.z);
+        if (d > 22) continue;
+        const s = passScore(this, p, q);
+        if (s > best) { best = s; target = q; }
+      }
+      if (target && best > -Infinity) {
+        const dx = target.pos.x + target.vel.x * 0.4 - b.pos.x, dz = target.pos.z + target.vel.z * 0.4 - b.pos.z;
+        const d = Math.hypot(dx, dz) || 1, sp = clamp(d * 1.1, 7, 14);
+        vx = (dx / d) * sp; vz = (dz / d) * sp; vy = 2.5;
+      } else {
+        target = null;
+        vx = dir * 3; vz = 0; vy = -1;
+      }
+    }
+    this.markOffside(p.team, p.id);
+    b.vel.x = vx; b.vel.y = vy; b.vel.z = vz;
+    b.spin = 0;
+    b.intendedId = target ? target.id : -1;
+    b.kickId++;
+    b.kickerId = p.id;
+    b.age = 0;
+    b.lastTouch = p.team;
+    p.kickCooldown = 0.4;
+    p.possessCooldown = 0.3;
+    p.headAnim = 0.45;
+    this.events.push('header');
+    if (shot) { this.shots[p.team]++; this.events.push('shot'); }
+    if (target && this.isHuman(target.team)) this.ctrl[target.team] = target.id;
+    return true;
   }
 
   /** A fast loose ball that hits a player's body bounces off instead of passing through. */

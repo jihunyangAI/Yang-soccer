@@ -47,6 +47,8 @@ export interface Player {
   runPhase: number;
   kickAnim: number;
   tackleAnim: number;
+  /** Visual: seconds left of a header just made. */
+  headAnim: number;
   sprinting: boolean;
   // ---- squad identity (changes on substitution) ----
   name: string;
@@ -123,6 +125,7 @@ export function createPlayer(id: number, team: Team, role: 'field' | 'gk', slot:
     runPhase: 0,
     kickAnim: 0,
     tackleAnim: 0,
+    headAnim: 0,
     sprinting: false,
     name: '',
     posLabel: '',
@@ -166,6 +169,7 @@ export function tickTimers(p: Player, dt: number): void {
   p.stumble = Math.max(0, p.stumble - dt);
   p.kickAnim = Math.max(0, p.kickAnim - dt);
   p.tackleAnim = Math.max(0, p.tackleAnim - dt);
+  p.headAnim = Math.max(0, p.headAnim - dt);
   p.touchAnim = Math.max(0, p.touchAnim - dt);
   p.touchCooldown = Math.max(0, p.touchCooldown - dt);
 }
